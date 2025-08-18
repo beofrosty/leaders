@@ -1,0 +1,12 @@
+# local env + secrets
+forum/.env
+.env
+# local DB (SQLite)
+forum/database.db
+*.sqlite3
+*.db
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

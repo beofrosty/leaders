@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="{{ get_locale() or 'ru' }}">
+<head>
+  <meta charset="utf-8">
+  <title>{{ test['title'] ~ ' · ' ~ _('Тест') }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{--border:#e5e7eb;--shadow:0 8px 30px rgba(0,0,0,.06)}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7f8;margin:0}
+    .container{max-width:900px;margin:24px auto;padding:0 18px}
+    .lang{font-size:12px;text-align:right;margin-bottom:8px}
+    .lang a{color:#334155;text-decoration:none}
+    .lang .sep{opacity:.5;margin:0 4px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px}
+    .h1{font-size:22px;font-weight:700;margin:0 0 12px}
+    .q{padding:12px 0;border-top:1px solid #f1f5f9}
+    label{display:block;margin:6px 0;cursor:pointer}
+    input[type="radio"]{margin-right:8px}
+    .btn{border:none;background:#22c55e;color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:700;margin-top:12px}
+    .btn:hover{filter:brightness(0.95)}
+    .muted{color:#64748b}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="lang">
+    <a href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">Русский</a>
+    <span class="sep">·</span>
+    <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">Кыргызча</a>
+  </div>
+
+  <form class="card" method="post">
+    <div class="h1">{{ test['title'] }}</div>
+    {% if test['description'] %}
+      <div class="muted">{{ test['description'] }}</div>
+    {% endif %}
+
+    {% for q in questions %}
+      {# Use a stable key for the radio group: prefer q.id, fall back to index #}
+      {% set q_idx = loop.index0 %}
+      {% set q_key = q.id if q.id is defined else q_idx %}
+      {% set group_name = 'q' ~ q_key %}
+
+      <div class="q">
+        <div><strong>{{ loop.index }}.</strong> {{ q.q }}</div>
+
+        {% for opt in q.options %}
+          {% set opt_idx = loop.index0 %}
+          {% set input_id = group_name ~ '_' ~ opt_idx %}
+          <label for="{{ input_id }}">
+            <input id="{{ input_id }}" type="radio" name="{{ group_name }}" value="{{ opt_idx }}">
+            {{ opt }}
+          </label>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <button class="btn" type="submit">{{ _('Отправить') }}</button>
+  </form>
+</div>
+</body>
+</html>

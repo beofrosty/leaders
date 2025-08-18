@@ -1,0 +1,424 @@
+  <!doctype html>
+  <html lang="{{ get_locale() or 'ru' }}">
+  <head>
+  <meta charset="utf-8">
+  <title>{{ (page_title or _('Тесты')) ~ ' · ' ~ _('Лидеры года') }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+  :root{--g:#1c7a45;--bg:#f6f7f8;--border:#e5e7eb;--muted:#64748b;--shadow:0 8px 30px rgba(0,0,0,.06);--green:#22c55e}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg)}
+  .layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+  /* aside */
+  .aside{background:var(--g);color:#fff;padding:16px 12px}
+  .brand{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:14px}
+  .brand img{width:36px;height:36px;border-radius:50%}
+  .nav{display:flex;flex-direction:column;gap:6px}
+  .nav a{display:flex;align-items:center;gap:10px;color:#e8fbee;text-decoration:none;padding:10px 12px;border-radius:10px}
+  .nav a.active{background:#0e5935;color:#fff}
+
+  /* topbar */
+  .topbar{background:#fff;border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 18px}
+  .lang{display:flex;align-items:center;gap:8px;color:#0f172a}
+  .lang a{color:#334155;text-decoration:none;font-size:12px}
+  .lang .sep{opacity:.5}
+  .user{display:flex;align-items:center;gap:10px}
+  .user .avatar{width:34px;height:34px;border-radius:50%;background:#e5f6ec;color:#1e824f;display:grid;place-items:center;font-weight:700}
+  .user .who{display:flex;flex-direction:column;line-height:1.1}
+  .user .name{font-size:14px;font-weight:600}
+  .user .role{font-size:12px;color:#475569}
+
+  /* content/list */
+  .content{padding:18px 22px}
+  .h1row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 14px}
+  .h1{font-size:20px;font-weight:700}
+  .add{border:none;background:#22c55e;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700;text-decoration:none}
+
+  /* cards */
+  .card{position:relative;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;max-width:860px}
+  .card + .card{margin-top:10px}
+  .card-head{display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-weight:700}
+  .card-sub{margin-top:6px;padding-top:10px;border-top:1px solid #eef1f4;color:#64748b;font-size:14px}
+  .kebab{appearance:none;border:none;background:transparent;cursor:pointer;padding:6px 8px;border-radius:8px}
+  .kebab:after{content:'⋮';font-size:18px;line-height:1}
+
+  /* dropdown */
+  .menu{position:absolute;right:8px;top:36px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);min-width:170px;display:none;z-index:5;overflow:hidden}
+  .menu.open{display:block}
+  .menu a,.menu button{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border:none;background:#fff;text-align:left;cursor:pointer;font:inherit}
+  .menu a:hover,.menu button:hover{background:#f3f4f6}
+  .menu .danger{color:#ef4444}
+  .copy-badge{position:fixed;right:20px;bottom:20px;background:#22c55e;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);display:none}
+  .copy-badge.show{display:block}
+
+  /* MODAL builder */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:1000;padding:20px}
+  .overlay.open{display:grid}
+  .modal{width:min(1000px,95vw);background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 20px 60px rgba(2,6,23,.18);overflow:hidden}
+  .m-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)}
+  .m-title{font-weight:700}
+  .m-close{appearance:none;border:none;background:transparent;font-size:22px;cursor:pointer}
+  .m-body{padding:16px 18px;max-height:70vh;overflow:auto}
+  .top-fields{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:12px}
+  .input, .select{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff}
+  .m-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .qcard{border:1px solid var(--border);border-radius:12px;padding:12px;background:#fafafa}
+  .opt-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .opt-row input[type="text"]{flex:1}
+  .type-row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .link{color:#0b7a45;cursor:pointer;font-weight:700;text-decoration:none}
+  .link:hover{text-decoration:underline}
+  .m-foot{display:flex;justify-content:flex-end;gap:10px;padding:12px 18px;border-top:1px solid var(--border);background:#fafafa}
+  .btn-ghost{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 16px;cursor:pointer}
+  .btn-save{border:none;background:#22c55e;color:#fff;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+  @media (max-width:860px){ .m-grid{grid-template-columns:1fr} .top-fields{grid-template-columns:1fr} }
+   .btn-lang{
+    display:inline-flex; align-items:center; gap:8px;
+    background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+    padding:6px 10px; cursor:pointer;
+  }
+
+  /* сами флаги — круглые, одного размера */
+  .flag-round{
+    width:22px; height:22px; object-fit:cover; border-radius:50%;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); /* тонкий кант */
+    vertical-align:middle;
+  }
+
+  /* дропдаун */
+  .lang-menu{position:absolute; right:0; top:calc(100% + 6px); display:none;
+    min-width:180px; background:#fff; border:1px solid #e5e7eb; border-radius:10px;
+    box-shadow:0 12px 30px rgba(2,6,23,.18); z-index:30; overflow:hidden}
+  .lang-menu a{display:flex; align-items:center; gap:10px; padding:10px 12px;
+    color:#111827; text-decoration:none}
+  .lang-menu a:hover{background:#f3f4f6}
+  .current-mark{margin-left:auto; color:#16a34a; font-weight:700}
+  .lang-switch.open .lang-menu{display:block}
+    .lang-switch{ position: relative; display:inline-block; }
+
+
+  </style>
+  </head>
+  <body>
+  <div class="layout">
+    <!-- aside -->
+    <aside class="aside">
+      <div class="brand">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="">
+        <strong>{{ _('Лидеры года') }}</strong>
+      </div>
+      <nav class="nav">
+        <a href="{{ url_for('admin.admin') }}">{{ _('Заявки') }}</a>
+        <a href="{{ url_for('admin.admin_tests') }}" class="active">{{ _('Тесты') }}</a>
+      </nav>
+    </aside>
+
+    <!-- main -->
+    <div>
+      <header class="topbar">
+        {% set cur = (get_locale() or 'ru') %}
+  {% set flags = {
+    'ru': url_for('static', filename='ru.png'),
+    'ky': url_for('static', filename='ky.png'),
+  } %}
+
+  <div class="lang-switch" id="langSwitch">
+    <button class="btn-lang" type="button">
+      <img src="{{ flags[cur] }}" alt="" class="flag-round">
+      {{ 'Русский' if cur=='ru' else 'Кыргызча' }} <span class="caret">▾</span>
+    </button>
+    <div class="lang-menu">
+      <a href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
+        <img src="{{ flags['ru'] }}" alt="" class="flag-round"> Русский
+        {% if cur=='ru' %}<span class="current-mark">✓</span>{% endif %}
+      </a>
+      <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
+        <img src="{{ flags['ky'] }}" alt="" class="flag-round"> Кыргызча
+        {% if cur=='ky' %}<span class="current-mark">✓</span>{% endif %}
+      </a>
+    </div>
+  </div>
+
+
+        <div class="user">
+          <div class="who">
+            <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
+            <span class="role">{{ _('Супер админ') if user and user['role']=='admin' else _('Администратор') }}</span>
+          </div>
+          <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="h1row">
+          <div class="h1">{{ _('Тесты') }}</div>
+          <button class="add" id="openBuilder">+ {{ _('Добавить') }}</button>
+        </div>
+
+        {% if tests and tests|length %}
+          {% for t in tests %}
+          <div class="card" data-card>
+            <div class="card-head">
+              <div class="card-title">{{ t['title'] }}</div>
+              <button class="kebab" type="button" data-menu-btn></button>
+            </div>
+            <div class="card-sub">
+  {% set n = (t['q_count'] or 0)|int %}
+  {{ n }} {{ ru_plural(n, _('вопрос'), _('вопроса'), _('вопросов')) }}
+</div>
+
+
+            <!-- dropdown -->
+            <div class="menu" data-menu>
+              <form method="post" action="{{ url_for('admin.admin_tests_delete', test_id=t['id']) }}" onsubmit="return confirm('{{ _('Удалить тест?') }}')">
+                <button class="danger" type="submit">{{ _('Удалить') }}</button>
+              </form>
+              <button type="button" data-edit-id="{{ t['id'] }}">{{ _('Редактировать') }}</button>
+              <button type="button" data-copy="{{ url_for('tests.take_test', test_id=t['id'], _external=True) }}">{{ _('Ссылка на тест') }}</button>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="card">{{ _('Данных нет') }}</div>
+        {% endif %}
+      </main>
+    </div>
+  </div>
+
+  <!-- маленький тост -->
+  <div class="copy-badge" id="copiedToast">{{ _('Ссылка скопирована') }}</div>
+
+  <!-- MODAL: конструктор (create/edit) -->
+  <div class="overlay" id="builder">
+    <div class="modal">
+      <div class="m-head">
+        <div class="m-title" id="builderTitle">{{ _('Создать тест') }}</div>
+        <button class="m-close" data-close>×</button>
+      </div>
+
+      <form class="m-body" id="builderForm" method="post" action="{{ url_for('admin.admin_tests_new') }}">
+        <div class="top-fields">
+          <input class="input" id="titleInput" placeholder="{{ _('Название теста') }}">
+          <input class="input" id="durationInput" type="number" min="0" placeholder="{{ _('Длительность (мин.)') }}">
+        </div>
+
+        <div class="m-grid" id="qGrid"></div>
+
+        <div style="margin-top:12px">
+          <a class="link" id="addQuestion">{{ _('Добавить вопрос') }} +</a>
+        </div>
+
+        <!-- скрытые для отправки -->
+        <input type="hidden" name="title" id="titleHidden">
+        <input type="hidden" name="description" id="descHidden">
+        <input type="hidden" name="duration_minutes" id="durationHidden">
+        <input type="hidden" name="questions" id="questionsHidden">
+      </form>
+
+      <div class="m-foot">
+        <button class="btn-ghost" data-close>{{ _('Отмена') }}</button>
+        <button class="btn-save" id="saveBtn">{{ _('Сохранить') }}</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    /* ===== i18n strings for JS ===== */
+    const I18N = {
+      copied: "{{ _('Ссылка скопирована') }}",
+      notLoaded: "{{ _('Не удалось загрузить тест') }}",
+      createTitle: "{{ _('Создать тест') }}",
+      editTitle: "{{ _('Редактировать тест') }}",
+      questionText: "{{ _('Текст вопроса') }}",
+      addOption: "{{ _('Добавить вариант ответа') }} +",
+      optionPlaceholder: "{{ _('Вариант ответа') }}",
+      single: "{{ _('Один ответ') }}",
+      multiple: "{{ _('Чекбокс') }}",
+      addAtLeastOne: "{{ _('Добавьте хотя бы один вопрос.') }}",
+      untitled: "{{ _('Без названия') }}"
+    };
+
+    /* ===== Dropdown ===== */
+    const toast = document.getElementById('copiedToast');
+    function showToast(){ toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1400); }
+    document.addEventListener('click', e => {
+      // закрыть все
+      document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open'));
+      // открыть текущее
+      const btn = e.target.closest('[data-menu-btn]');
+      if (btn) { e.stopPropagation(); btn.closest('[data-card]').querySelector('[data-menu]').classList.add('open'); }
+      // копирование
+      const copyBtn = e.target.closest('[data-copy]');
+      if (copyBtn) {
+        e.preventDefault();
+        const link = copyBtn.getAttribute('data-copy') || '';
+        if (navigator.clipboard && link) navigator.clipboard.writeText(link).then(showToast);
+      }
+    });
+
+    /* ===== Builder (create/edit) ===== */
+    const overlay = document.getElementById('builder');
+    const openBtn = document.getElementById('openBuilder');
+    const closeBtns = overlay.querySelectorAll('[data-close]');
+    const grid = document.getElementById('qGrid');
+    const saveBtn = document.getElementById('saveBtn');
+    const form = document.getElementById('builderForm');
+    const titleInput = document.getElementById('titleInput');
+    const durationInput = document.getElementById('durationInput');
+    const titleHidden = document.getElementById('titleHidden');
+    const descHidden = document.getElementById('descHidden');
+    const durationHidden = document.getElementById('durationHidden');
+    const questionsHidden = document.getElementById('questionsHidden');
+    const builderTitle = document.getElementById('builderTitle');
+
+    let mode = 'create'; // 'create' | 'edit'
+    let editId = null;
+
+    // Модель вопроса
+    function newQuestion(){
+      return { q:"", type:"single", options:[
+        {text:"", correct:false}, {text:"", correct:false}, {text:"", correct:false}
+      ]};
+    }
+    let questions = [];
+
+    function render(){
+      grid.innerHTML="";
+      questions.forEach((qu, qi)=>{
+        const card=document.createElement('div'); card.className='qcard';
+
+        const qInput=document.createElement('input'); qInput.className='input';
+        qInput.placeholder=I18N.questionText; qInput.value=qu.q;
+        qInput.oninput=e=>{qu.q=e.target.value}; card.appendChild(qInput);
+
+        qu.options.forEach((op, oi)=>{
+          const row=document.createElement('div'); row.className='opt-row';
+          const chk=document.createElement('input'); chk.type=(qu.type==='single')?'radio':'checkbox';
+          chk.name='c-'+qi; chk.checked=!!op.correct;
+          chk.onchange=()=>{ if(qu.type==='single'){ qu.options.forEach(o=>o.correct=false); op.correct=true; render(); } else { op.correct=chk.checked; } };
+          row.appendChild(chk);
+
+          const inp=document.createElement('input'); inp.type='text'; inp.className='input';
+          inp.placeholder=`${I18N.optionPlaceholder} ${oi+1}`; inp.value=op.text; inp.oninput=e=>{op.text=e.target.value};
+          row.appendChild(inp);
+
+          card.appendChild(row);
+        });
+
+        const typeRow=document.createElement('div'); typeRow.className='type-row';
+        const addOpt=document.createElement('a'); addOpt.className='link'; addOpt.textContent=I18N.addOption;
+        addOpt.onclick=()=>{qu.options.push({text:'',correct:false}); render();};
+        typeRow.appendChild(addOpt);
+
+        const sel=document.createElement('select'); sel.className='select';
+        sel.innerHTML=`<option value="single"${qu.type==='single'?' selected':''}>${I18N.single}</option>
+                       <option value="multiple"${qu.type==='multiple'?' selected':''}>${I18N.multiple}</option>`;
+        sel.onchange=()=>{const prev=qu.type; qu.type=sel.value;
+          if(qu.type==='single' && prev!=='single'){ const idx=qu.options.findIndex(o=>o.correct);
+            qu.options.forEach(o=>o.correct=false); if(idx>=0) qu.options[idx].correct=true; }
+          render();
+        };
+        typeRow.appendChild(sel);
+        card.appendChild(typeRow);
+
+        grid.appendChild(card);
+      });
+    }
+
+    function openModalCreate(){
+      mode='create'; editId=null;
+      builderTitle.textContent=I18N.createTitle;
+      form.action = "{{ url_for('admin.admin_tests_new') }}";
+      titleInput.value='{{ _("Шаблон № 1") }}';
+      durationInput.value=0;
+      questions=[newQuestion(), newQuestion()];
+      render();
+      overlay.classList.add('open'); document.body.style.overflow='hidden';
+    }
+    function openModalEdit(id, payload){
+      mode='edit'; editId=id;
+      builderTitle.textContent=I18N.editTitle;
+      form.action = "{{ url_for('admin.admin_tests_edit', test_id='__ID__') }}".replace('__ID__', id);
+      titleInput.value=payload.title || '';
+      durationInput.value=payload.duration_minutes || 0;
+      try{
+        const arr = JSON.parse(payload.questions || '[]');
+        questions = arr.map(q => ({
+          q: q.q || '',
+          type: Array.isArray(q.correct) ? 'multiple' : 'single',
+          options: (q.options || []).map((text, idx) => ({
+            text,
+            correct: Array.isArray(q.correct) ? q.correct.includes(idx) : (idx === (q.correct_index ?? -1))
+          }))
+        }));
+        if (!questions.length) questions=[newQuestion()];
+      }catch(e){ questions=[newQuestion()]; }
+      render();
+      overlay.classList.add('open'); document.body.style.overflow='hidden';
+    }
+    function closeModal(){ overlay.classList.remove('open'); document.body.style.overflow=''; }
+
+    // События
+    openBtn.onclick = openModalCreate;
+    closeBtns.forEach(b=> b.onclick = closeModal);
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
+    document.getElementById('addQuestion').onclick = ()=>{ questions.push(newQuestion()); render(); };
+
+    // Открыть редактирование из меню
+    document.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('[data-edit-id]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-edit-id');
+      const url = "{{ url_for('admin.admin_tests_json', test_id='__ID__') }}".replace('__ID__', id);
+      const r = await fetch(url);
+      if(!r.ok){ alert(I18N.notLoaded); return; }
+      const t = await r.json();
+      openModalEdit(id, t);
+    });
+
+    // Сохранение
+    saveBtn.onclick = (e)=>{
+      e.preventDefault();
+
+      const cleaned = questions.map(q=>({
+        q:(q.q||'').trim(),
+        type:q.type,
+        options:q.options.map(o=>({text:(o.text||'').trim(), correct:!!o.correct})).filter(o=>o.text)
+      })).filter(q=> q.q && q.options.length>=2);
+
+      if (!cleaned.length){ alert(I18N.addAtLeastOne); return; }
+
+      const payload = cleaned.map(q=>{
+        const correctIdxs = q.options.map((o,i)=>o.correct?i:-1).filter(i=>i>=0);
+        return (q.type==='single')
+          ? { q:q.q, options:q.options.map(o=>o.text), correct_index:(correctIdxs[0]??0) }
+          : { q:q.q, options:q.options.map(o=>o.text), correct:correctIdxs };
+      });
+
+      titleHidden.value = titleInput.value.trim() || I18N.untitled;
+      durationHidden.value = parseInt(durationInput.value || 0, 10);
+      descHidden.value = '';
+      questionsHidden.value = JSON.stringify(payload);
+
+      form.submit();
+    };
+  })();
+  </script>
+  <script>
+  (function(){
+    const sw = document.getElementById('langSwitch');
+    if(!sw) return;
+    const btn = sw.querySelector('.btn-lang');
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      sw.classList.toggle('open');
+      btn.setAttribute('aria-expanded', sw.classList.contains('open'));
+    });
+    document.addEventListener('click', ()=> sw.classList.remove('open'));
+  })();
+  </script>
+
+  </body>
+  </html>

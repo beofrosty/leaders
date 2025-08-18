@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="{{ get_locale() or 'ru' }}">
+<head>
+<meta charset="utf-8">
+<title>{{ (page_title or _('Заявки')) ~ ' · ' ~ _('Лидеры года') }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--g:#1c7a45;--bg:#f6f7f8;--border:#e5e7eb;--muted:#64748b;--shadow:0 8px 30px rgba(0,0,0,.06);--green:#22c55e}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg)}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+/* aside */
+.aside{background:var(--g);color:#fff;padding:16px 12px}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:14px}
+.brand img{width:36px;height:36px;border-radius:50%}
+.nav{display:flex;flex-direction:column;gap:6px}
+.nav a{display:flex;align-items:center;gap:10px;color:#e8fbee;text-decoration:none;padding:10px 12px;border-radius:10px}
+.nav a.active{background:#0e5935;color:#fff}
+
+/* topbar */
+.topbar{background:#fff;border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 18px}
+.user{display:flex;align-items:center;gap:10px}
+.user .avatar{width:34px;height:34px;border-radius:50%;background:#e5f6ec;color:#1e824f;display:grid;place-items:center;font-weight:700}
+.user .who{display:flex;flex-direction:column;line-height:1.1}
+.user .name{font-size:14px;font-weight:600}
+.user .role{font-size:12px;color:#475569}
+
+/* content */
+.content{padding:18px 22px}
+.h1{font-size:20px;font-weight:700;margin:8px 0 14px}
+.filters{display:flex;gap:8px;align-items:center;margin:6px 0 16px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#e8f7ef;color:#0b7a45;font-weight:600;font-size:12px}
+.chip .cnt{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#0b7a45;color:#fff;font-weight:700;font-size:12px}
+
+/* status chip */
+.chip--status{background:#eef2ff;color:#3730a3}
+.chip--status.ok{background:#e8f7ef;color:#065f46}
+.chip--status.bad{background:#fee2e2;color:#9f1239}
+
+/* bullets */
+.bullets{margin:6px 0 4px; padding-left:18px; color:#0f172a}
+.bullets li{margin:6px 0}
+.bullets .sub{margin-top:6px; padding-left:18px}
+.bullets b{font-weight:700}
+
+/* cards / table */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;max-width:860px}
+.card + .card{margin-top:14px}
+.card-title{font-weight:700;margin:2px 0 12px}
+.table{width:100%}
+.header{display:grid;grid-template-columns:150px 1fr 220px;gap:12px;color:#0f172a;font-weight:600;font-size:14px;margin-bottom:8px}
+.row{display:grid;grid-template-columns:150px 1fr 220px;gap:12px;align-items:center;padding:6px 0;border-top:1px solid #eef1f4}
+.row .right{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.muted{color:var(--muted);font-size:12px}
+.btn{border:none;background:var(--green);color:#fff;padding:10px 16px;border-radius:999px;font-weight:600;cursor:pointer}
+.empty{background:#fff;border:1px dashed var(--border);border-radius:12px;padding:24px;text-align:center;color:var(--muted);max-width:860px}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:1000}
+.overlay.open{display:grid}
+.modal{
+  width:min(900px,94vw);background:#fff;border:1px solid var(--border);border-radius:14px;
+  box-shadow:0 20px 60px rgba(2,6,23,.18);overflow:hidden;
+  display:flex;flex-direction:column;max-height:calc(var(--vh,1vh)*92);
+}
+.m-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)}
+.m-title{font-weight:700}
+.m-close{appearance:none;border:none;background:transparent;font-size:22px;cursor:pointer}
+
+/* stepper (5 шагов) */
+.stepper{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.step{display:flex;flex-direction:column;align-items:center;gap:6px;color:#64748b;text-align:center}
+.step .dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid #d1d5db;background:#fff;font-weight:700}
+.step.active{color:#0f172a}
+.step.active .dot{background:var(--green);border-color:var(--green);color:#fff}
+
+.content-modal{padding:18px;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field input,.field textarea{padding:10px;border:1px solid var(--border);border-radius:8px;background:#f9fafb}
+.field textarea{min-height:90px;resize:vertical}
+
+/* modal footer */
+.row-end{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-top:12px;padding:12px 18px;border-top:1px solid var(--border);background:#fafafa}
+.nav-buttons{display:flex;gap:8px}
+.decision{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn-ghost{padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer}
+.btn-primary{padding:10px 16px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:600;cursor:pointer}
+.btn-danger{padding:10px 16px;border:none;border-radius:10px;background:#ef4444;color:#fff;font-weight:600;cursor:pointer}
+
+/* reason input */
+.reason-input{min-width:260px;max-width:420px;width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+@media (max-width:740px){.grid{grid-template-columns:1fr}}
+
+/* язык */
+.lang-switch{position:relative;display:inline-block}
+.lang-menu{position:absolute;right:0;top:calc(100% + 6px);display:none;min-width:180px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 12px 30px rgba(2,6,23,.18);z-index:1000;overflow:hidden}
+.lang-switch.open .lang-menu{display:block}
+.btn-lang{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;cursor:pointer}
+.btn-lang img.flag-round,.lang-menu img.flag-round{width:22px;height:22px;max-width:22px;max-height:22px;object-fit:cover;border-radius:50%;display:inline-block}
+
+/* ====== Шаг 5: Все поля ====== */
+.kv-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 10px}
+.kv-search{flex:1 1 260px;min-width:220px;max-width:520px;height:38px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+.kv-toolbar .chk{display:inline-flex;align-items:center;gap:8px;color:#475569}
+.kv-grid{display:flex;flex-direction:column;gap:8px}
+.kv-item{display:grid;grid-template-columns:minmax(200px,280px) 1fr auto;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid #eef1f4;border-radius:12px;background:#fff}
+.kv-label{color:#334155;font-weight:600}
+.kv-value{position:relative;background:#f9fafb;border:1px solid var(--border);border-radius:10px;padding:10px;white-space:pre-wrap;word-break:break-word;max-height:none}
+.kv-actions{display:flex;gap:8px}
+.kv-copy{border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:600}
+.kv-empty{display:inline-block;padding:2px 8px;border-radius:999px;background:#fee2e2;color:#9f1239;font-weight:700;font-size:12px}
+.kv-value.collapsed{max-height:120px;overflow:hidden;-webkit-mask-image:linear-gradient(#000,rgba(0,0,0,0));mask-image:linear-gradient(#000,rgba(0,0,0,0))}
+.kv-toggle{margin-top:6px;display:inline-block;border:none;background:transparent;color:#0b7a45;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- aside -->
+  <aside class="aside">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="">
+      <strong>{{ _('Лидеры года') }}</strong>
+    </div>
+    <nav class="nav">
+      <a href="{{ url_for('admin.admin') }}" class="{{ 'active' if active=='apps' else '' }}">{{ _('Заявки') }}</a>
+      <a href="{{ url_for('admin.admin_tests') }}" class="{{ 'active' if active=='tests' else '' }}">{{ _('Тесты') }}</a>
+    </nav>
+  </aside>
+
+  <!-- main -->
+  <div>
+    <header class="topbar">
+      {% set cur = (get_locale() or 'ru') %}
+      {% set flags = {'ru': url_for('static', filename='ru.png'), 'ky': url_for('static', filename='ky.png')} %}
+      <div class="lang-switch" id="langSwitch" style="position:relative;margin-right:auto;padding-left:16px">
+        <button class="btn-lang" type="button">
+          <img src="{{ flags[cur] }}" alt="" class="flag-round">
+          {{ 'Русский' if cur=='ru' else 'Кыргызча' }} <span class="caret">▾</span>
+        </button>
+        <div class="lang-menu">
+          <a href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
+            <img src="{{ flags['ru'] }}" alt="" class="flag-round"> Русский
+            {% if cur=='ru' %}<span class="current-mark">✓</span>{% endif %}
+          </a>
+          <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
+            <img src="{{ flags['ky'] }}" alt="" class="flag-round"> Кыргызча
+            {% if cur=='ky' %}<span class="current-mark">✓</span>{% endif %}
+          </a>
+        </div>
+      </div>
+
+      <div class="user">
+        <div class="who">
+          <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
+          <span class="role">{{ _('Супер админ') if user and user['role']=='admin' else _('Администратор') }}</span>
+        </div>
+        <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="h1">{{ _('Заявки') }}</div>
+      <div class="filters">
+        <span class="chip">{{ _('Все заявки') }} <span class="cnt">{{ items|length }}</span></span>
+      </div>
+
+      <!-- Инфо-блок -->
+      <div class="card" role="note" aria-label="{{ _('Этап 2: Рассмотрение заявки') }}">
+        <div class="card-title">{{ _('Этап 2: Рассмотрение заявки') }}</div>
+        <ul class="bullets">
+          <li>{{ _('Комиссия обрабатывает данные заявки.') }}</li>
+          <li>{{ _('Осуществляет проверку данных.') }}</li>
+          <li>{{ _('Принимает решение:') }}
+            <ul class="sub">
+              <li><b>{{ _('Одобрено') }}</b> — {{ _('Допускается на 2-этап конкурса') }}</li>
+              <li><b>{{ _('Отклонено') }}</b> — {{ _('с указанием причины.') }}</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      {% if items and items|length %}
+        {% for it in items %}
+          <div class="card" data-row="{{ it['id'] }}">
+            <div class="card-title">{{ _('Заявка №') }} {{ loop.index }}</div>
+
+            <div class="table">
+              <div class="header">
+                <div>{{ _('Дата') }}</div>
+                <div>{{ _('ФИО') }}</div>
+                <div class="right">{{ _('Статус / Действия') }}</div>
+              </div>
+
+              {% set d = (it['created_at'][:10] if it['created_at'] else '') %}
+              {% if d %}
+                {% set parts = d.split('-') %}
+                {% set ddmmyy = parts[2] ~ '.' ~ parts[1] ~ '.' ~ parts[0][2:] %}
+              {% else %}
+                {% set ddmmyy = '-' %}
+              {% endif %}
+
+              <div class="row">
+                <div class="muted">{{ ddmmyy }}</div>
+                <div>{{ it['full_name'] or '—' }}</div>
+                <div class="right">
+                  {% if it['commission_status'] %}
+                    {% set ok = (it['commission_status']|lower).startswith('одобр') %}
+                    <span class="chip chip--status chip-status {{ 'ok' if ok else 'bad' }}">{{ it['commission_status'] }}</span>
+                  {% endif %}
+                  <button class="btn details-btn" type="button" data-id="{{ it['id'] }}">{{ _('Детали') }}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">{{ _('Данных нет') }}</div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="detailsOverlay" class="overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="m-head">
+      <div class="m-title" id="mTitle">{{ _('Заявка') }}</div>
+      <button class="m-close" type="button" data-close>×</button>
+    </div>
+
+    <!-- 5 шагов -->
+    <div class="stepper">
+      <div class="step active"><div class="dot">1</div><div>{{ _('Личные данные') }}</div></div>
+      <div class="step"><div class="dot">2</div><div>{{ _('Образование') }}</div></div>
+      <div class="step"><div class="dot">3</div><div>{{ _('Опыт и достижения') }}</div></div>
+      <div class="step"><div class="dot">4</div><div>{{ _('Дополнительно') }}</div></div>
+      <div class="step"><div class="dot">5</div><div>{{ _('Все поля') }}</div></div>
+    </div>
+
+    <div class="content-modal">
+      <!-- STEP 1 -->
+      <section class="pane" data-step="0">
+        <div class="grid">
+          <label class="field"><span>{{ _('ФИО') }}</span><input id="f_full_name" readonly></label>
+          <label class="field"><span>{{ _('Занимающая должность') }}</span><input id="f_position" readonly></label>
+          <label class="field"><span>{{ _('Дата рождения') }}</span><input id="f_birth_date" readonly></label>
+          <label class="field"><span>{{ _('Дата создания заявки') }}</span><input id="f_created_at" readonly></label>
+          <label class="field"><span>{{ _('Контактные связи') }}</span><input id="f_contacts" readonly></label>
+          <label class="field"><span>{{ _('Электронная почта') }}</span><input id="f_email" readonly></label>
+          <label class="field" style="grid-column:1/-1"><span>{{ _('Адрес проживания') }}</span><input id="f_address" readonly></label>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section class="pane" data-step="1" hidden>
+        <div class="grid">
+          <label class="field"><span>{{ _('Учебное заведение') }}</span><input id="f_education_institution" readonly></label>
+          <label class="field"><span>{{ _('Год окончания') }}</span><input id="f_graduation_year" readonly></label>
+          <label class="field"><span>{{ _('Специальность/направление') }}</span><input id="f_specialization" readonly></label>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section class="pane" data-step="2" hidden>
+        <div class="grid">
+          <label class="field"><span>{{ _('Опишите свой опыт лидерства. В каких проектах/инициативах вы принимали участие?') }}</span><textarea id="f_leadership_experience" readonly></textarea></label>
+          <label class="field"><span>{{ _('Какие навыки и качества, на ваш взгляд, делают вас хорошим лидером?') }}</span><textarea id="f_leader_skills" readonly></textarea></label>
+          <label class="field"><span>{{ _('Какие достижения в личной и профессиональной жизни вы считаете наиболее значимыми?') }}</span><textarea id="f_personal_achievements" readonly></textarea></label>
+          <label class="field"><span>{{ _('Как вы мотивируете команду к достижению целей?') }}</span><textarea id="f_motivation" readonly></textarea></label>
+        </div>
+      </section>
+
+      <!-- STEP 4 -->
+      <section class="pane" data-step="3" hidden>
+        <div class="grid">
+          <label class="field"><span>{{ _('Опишите случай, когда вам пришлось принять сложное решение в условиях неопределенности. Как вы поступили?') }}</span><textarea id="f_decision_case" readonly></textarea></label>
+          <label class="field"><span>{{ _('Как вы справляетесь с конфликтами в коллективе?') }}</span><textarea id="f_conflict_resolution" readonly></textarea></label>
+          <label class="field"><span>{{ _('Какие цели вы ставите перед собой в ближайшие 3-5 лет?') }}</span><textarea id="f_goals" readonly></textarea></label>
+          <label class="field"><span>{{ _('Как участие в конкурсе лидеров может помочь вам в достижении этих целей?') }}</span><textarea id="f_contest_benefit" readonly></textarea></label>
+          <label class="field"><span>{{ _('Что для вас означает быть лидером?') }}</span><textarea id="f_leader_definition" readonly></textarea></label>
+          <label class="field"><span>{{ _('Почему вы решили участвовать в этом конкурсе?') }}</span><textarea id="f_reason" readonly></textarea></label>
+          <label class="field"><span>{{ _('Есть ли у вас опыт участия в аналогичных конкурсах иди проектах? Если да, то в каких?') }}</span><textarea id="f_similar_experience" readonly></textarea></label>
+          <label class="field"><span>{{ _('Согласие на обработку персональных данных') }}</span><input id="f_consent" readonly></label>
+        </div>
+      </section>
+
+      <!-- STEP 5: все поля динамически (улучшенная версия) -->
+      <section class="pane" data-step="4" hidden>
+        <div class="kv-toolbar">
+          <input id="kvSearch" class="kv-search" placeholder="{{ _('Поиск по полям') }}">
+          <label class="chk"><input type="checkbox" id="kvShowEmpty"> {{ _('Показывать пустые') }}</label>
+          <label class="chk"><input type="checkbox" id="kvCollapseLong" checked> {{ _('Сворачивать длинные') }}</label>
+        </div>
+        <div class="kv-grid" id="kvGrid"></div>
+      </section>
+    </div>
+
+    <div class="row-end">
+      <div class="nav-buttons">
+        <button class="btn-ghost" type="button" id="prevStepBtn" hidden>{{ _('Назад') }}</button>
+        <button class="btn-primary" type="button" id="nextStepBtn">{{ _('Продолжить') }}</button>
+      </div>
+      <div class="decision">
+        <input id="decisionReason" class="reason-input" placeholder="{{ _('Причина (обязательно для отклонения)') }}">
+        <button class="btn-ghost" type="button" id="approveBtn">✅ {{ _('Одобрить') }}</button>
+        <button class="btn-danger" type="button" id="rejectBtn">⛔ {{ _('Отклонить') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const decideUrlTpl = "{{ url_for('admin.admin_decide', app_id='__ID__') }}";
+  const overlay = document.getElementById('detailsOverlay');
+  const closeBtns = overlay.querySelectorAll('[data-close]');
+  const panes = [...overlay.querySelectorAll('.pane')];
+  const steps = [...overlay.querySelectorAll('.stepper .step')];
+
+  const prevBtn = document.getElementById('prevStepBtn');
+  const nextBtn = document.getElementById('nextStepBtn');
+  const approveBtn = document.getElementById('approveBtn');
+  const rejectBtn = document.getElementById('rejectBtn');
+  const reasonInput = document.getElementById('decisionReason');
+
+  const TXT_DONE = "{{ _('Готово') }}";
+  const TXT_NEXT = "{{ _('Продолжить') }}";
+  const TXT_ERR = {
+    net: "{{ _('Ошибка сети') }}",
+    need_reason: "{{ _('Укажите причину отклонения') }}",
+    bad_status: "{{ _('Некорректный статус') }}",
+  };
+  const L_OK = "{{ _('Одобрено') }}";
+  const L_BAD = "{{ _('Отклонено') }}";
+
+  let current = 0;
+  let currentAppId = null;
+
+  function updateNav(){
+    prevBtn.hidden = (current === 0);
+    const last = (current === panes.length - 1);
+    nextBtn.textContent = last ? TXT_DONE : TXT_NEXT;
+  }
+  function showStep(i){
+    panes.forEach((p,idx)=> p.hidden = idx!==i);
+    steps.forEach((s,idx)=>{ s.classList.toggle('active', idx===i); s.classList.toggle('done', idx<i); });
+    current = i; updateNav();
+  }
+  function openModal(appId){
+    currentAppId = appId;
+    reasonInput.value = '';
+    overlay.classList.add('open'); document.body.style.overflow='hidden';
+    showStep(0);
+  }
+  function closeModal(){ overlay.classList.remove('open'); document.body.style.overflow=''; currentAppId = null; }
+
+  nextBtn.addEventListener('click', ()=>{ if (current < panes.length - 1) showStep(current + 1); else closeModal(); });
+  prevBtn.addEventListener('click', ()=>{ if (current > 0) showStep(current - 1); });
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
+  closeBtns.forEach(b=> b.addEventListener('click', closeModal));
+
+  function setVal(id, v){ const el = document.getElementById(id); if(el) el.value = (v ?? ''); }
+
+  const LABELS = {
+    full_name: "{{ _('ФИО') }}",
+    position: "{{ _('Занимаемая должность') }}",
+    birth_date: "{{ _('Дата рождения') }}",
+    created_at: "{{ _('Дата создания заявки') }}",
+    contacts: "{{ _('Контакты') }}",
+    email: "{{ _('Электронная почта') }}",
+    address: "{{ _('Адрес проживания') }}",
+    education_institution: "{{ _('Учебное заведение') }}",
+    graduation_year: "{{ _('Год окончания') }}",
+    specialization: "{{ _('Специальность/направление') }}",
+    leadership_experience: "{{ _('Опыт лидерства') }}",
+    leader_skills: "{{ _('Навыки лидера') }}",
+    personal_achievements: "{{ _('Личные достижения') }}",
+    motivation: "{{ _('Как мотивируете команду') }}",
+    decision_case: "{{ _('Сложное решение') }}",
+    conflict_resolution: "{{ _('Конфликты') }}",
+    goals: "{{ _('Цели на 3–5 лет') }}",
+    contest_benefit: "{{ _('Как конкурс поможет') }}",
+    leader_definition: "{{ _('Что значит быть лидером') }}",
+    leader_definition_2: "{{ _('Что значит быть лидером (доп.)') }}",
+    reason: "{{ _('Почему участвуете') }}",
+    similar_experience: "{{ _('Опыт участия в конкурсах') }}"
+  };
+
+  // ==== STEP 5: улучшенный список key/value ====
+  const kvGrid = document.getElementById('kvGrid');
+  const kvSearch = document.getElementById('kvSearch');
+  const kvShowEmpty = document.getElementById('kvShowEmpty');
+  const kvCollapseLong = document.getElementById('kvCollapseLong');
+
+  function makeKvItem(labelText, rawVal){
+    const wrap = document.createElement('div'); wrap.className = 'kv-item';
+    const label = document.createElement('div'); label.className='kv-label'; label.textContent = labelText;
+
+    const value = document.createElement('div'); value.className='kv-value'; value.textContent = (rawVal ?? '') === '' ? '' : String(rawVal);
+    if (kvCollapseLong.checked) value.classList.add('collapsed');
+    if ((rawVal ?? '') === '') {
+      const badge = document.createElement('span'); badge.className='kv-empty'; badge.textContent='{{ _("Пусто") }}';
+      value.appendChild(badge);
+    }
+
+    const actions = document.createElement('div'); actions.className='kv-actions';
+    const copyBtn = document.createElement('button'); copyBtn.type='button'; copyBtn.className='kv-copy'; copyBtn.textContent='{{ _("Копировать") }}';
+    copyBtn.addEventListener('click', ()=> {
+      navigator.clipboard.writeText(String(rawVal ?? ''));
+      const old = copyBtn.textContent; copyBtn.textContent='{{ _("Скопировано!") }}'; setTimeout(()=>copyBtn.textContent=old, 1200);
+    });
+    const toggleBtn = document.createElement('button'); toggleBtn.type='button'; toggleBtn.className='kv-toggle';
+    toggleBtn.textContent = value.classList.contains('collapsed') ? '{{ _("Развернуть") }}' : '{{ _("Свернуть") }}';
+    toggleBtn.addEventListener('click', ()=> {
+      value.classList.toggle('collapsed');
+      toggleBtn.textContent = value.classList.contains('collapsed') ? '{{ _("Развернуть") }}' : '{{ _("Свернуть") }}';
+    });
+
+    actions.append(copyBtn, toggleBtn);
+    wrap.append(label, value, actions);
+    return wrap;
+  }
+
+  let kvData = []; // [{k,label,val},...]
+
+  function renderKv(){
+    const q = (kvSearch.value || '').trim().toLowerCase();
+    kvGrid.innerHTML = '';
+    kvData.forEach(it => {
+      const isEmpty = (it.val ?? '') === '';
+      if (!kvShowEmpty.checked && isEmpty) return;
+      if (q && !(it.label.toLowerCase().includes(q) || String(it.val||'').toLowerCase().includes(q))) return;
+      kvGrid.appendChild(makeKvItem(it.label, it.val));
+    });
+  }
+
+  kvSearch && kvSearch.addEventListener('input', renderKv);
+  kvShowEmpty && kvShowEmpty.addEventListener('change', renderKv);
+  kvCollapseLong && kvCollapseLong.addEventListener('change', renderKv);
+
+  function fillKvList(formObj, meta){
+    // Сначала собираем данные
+    const base = { id: meta.id, email: meta.email, full_name: meta.full_name, created_at: (meta.created_at || '').slice(0,10) };
+    const merged = {...base, ...formObj};
+
+    // Приоритет известных полей
+    const knownOrder = Object.keys(LABELS);
+    const entries = Object.entries(merged).map(([k,v])=>({k, val: (typeof v==='object' && v!==null) ? JSON.stringify(v, null, 2) : v, label: LABELS[k] || k}));
+    entries.sort((a,b)=>{
+      const ia = Math.max(knownOrder.indexOf(a.k), -1); const ib = Math.max(knownOrder.indexOf(b.k), -1);
+      const pa = ia === -1 ? 9999 : ia; const pb = ib === -1 ? 9999 : ib;
+      return pa - pb || a.k.localeCompare(b.k);
+    });
+
+    kvData = entries;
+    renderKv();
+  }
+
+  async function loadDetails(appId){
+    const url = "{{ url_for('admin.admin_app_json', app_id='__ID__') }}".replace('__ID__', appId);
+    const r = await fetch(url);
+    if(!r.ok){ alert('{{ _("Не удалось загрузить детали") }}'); return; }
+    const j = await r.json();
+    const f = j.form || {};
+    const get = k => (f[k] ?? '');
+    const getDate = v => (v || '').slice(0,10);
+
+    // Шаг 1
+    setVal('f_full_name', j.full_name || get('full_name'));
+    setVal('f_email', j.email || get('email'));
+    setVal('f_created_at', getDate(j.created_at || get('created_at')));
+    setVal('f_position', get('position'));
+    setVal('f_birth_date', get('birth_date'));
+    setVal('f_contacts', get('contacts'));
+    setVal('f_address', get('address'));
+
+    // Шаг 2
+    setVal('f_education_institution', get('education_institution'));
+    setVal('f_graduation_year', get('graduation_year'));
+    setVal('f_specialization', get('specialization'));
+
+    // Шаг 3
+    setVal('f_leadership_experience', get('leadership_experience'));
+    setVal('f_leader_skills', get('leader_skills'));
+    setVal('f_personal_achievements', get('personal_achievements'));
+    setVal('f_motivation', get('motivation'));
+
+    // Шаг 4
+    setVal('f_decision_case', get('decision_case'));
+    setVal('f_conflict_resolution', get('conflict_resolution'));
+    setVal('f_goals', get('goals'));
+    setVal('f_contest_benefit', get('contest_benefit'));
+    setVal('f_reason', get('reason'));
+    setVal('f_similar_experience', get('similar_experience'));
+
+    // Шаг 5 — красиво
+    fillKvList(f, {id:j.id, email:j.email, full_name:j.full_name, created_at:j.created_at});
+  }
+
+  async function decide(status){
+    if(!currentAppId) return;
+    const reason = (reasonInput.value || '').trim();
+    if(status === 'rejected' && !reason){ alert(TXT_ERR.need_reason); return; }
+    try{
+      const url = decideUrlTpl.replace('__ID__', currentAppId);
+      const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status, reason}) });
+      const j = await r.json();
+      if(!r.ok || !j.ok){
+        alert(j.error === 'need_reason' ? TXT_ERR.need_reason :
+              j.error === 'bad_status' ? TXT_ERR.bad_status : TXT_ERR.net);
+        return;
+      }
+      // обновить чип в рядке
+      const rowBtn = document.querySelector(`.details-btn[data-id="${currentAppId}"]`);
+      if(rowBtn){
+        const right = rowBtn.closest('.right');
+        let chip = right.querySelector('.chip-status');
+        if(!chip){ chip = document.createElement('span'); chip.className = 'chip chip--status chip-status'; right.insertBefore(chip, rowBtn); }
+        chip.textContent = j.status;
+        chip.classList.toggle('ok', j.status === L_OK);
+        chip.classList.toggle('bad', j.status === L_BAD);
+      }
+      closeModal();
+    }catch(e){ alert(TXT_ERR.net); }
+  }
+
+  document.querySelectorAll('.details-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const appId = btn.dataset.id;
+      await loadDetails(appId);
+      openModal(appId);
+    });
+  });
+  approveBtn.addEventListener('click', ()=>decide('approved'));
+  rejectBtn.addEventListener('click', ()=>decide('rejected'));
+})();
+
+// vh fix
+(function(){ function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01 + 'px'); } setVh(); window.addEventListener('resize', setVh); })();
+
+// lang menu
+(function(){
+  const sw = document.getElementById('langSwitch'); if(!sw) return;
+  const btn = sw.querySelector('.btn-lang');
+  btn.addEventListener('click', (e)=>{ e.stopPropagation(); sw.classList.toggle('open'); btn.setAttribute('aria-expanded', sw.classList.contains('open')); });
+  document.addEventListener('click', ()=> sw.classList.remove('open'));
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Регистрация администратора') }} · {{ _('Лидеры года') }}{% endblock %}
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<form class="card" method="post" action="{{ url_for('auth.admin_register') }}" id="adminRegForm">
+  <div class="h-title">{{ _('Регистрация администратора') }}</div>
+
+  {% if form.require_code %}
+    <label class="label-sm">{{ _('Код приглашения') }}</label>
+    <input class="input" type="text" name="invite_code" placeholder="{{ _('Введите код') }}" required>
+  {% endif %}
+
+  <label class="label-sm">{{ _('ФИО') }}</label>
+  <input class="input" type="text" name="full_name" placeholder="{{ _('Иванов Иван Иванович') }}" value="{{ form.get('full_name','') }}" required>
+
+  <label class="label-sm">E-mail</label>
+  <input class="input" type="email" name="email" placeholder="you@example.com" value="{{ form.get('email','') }}" required>
+
+  <label class="label-sm">{{ _('Пароль') }}</label>
+  <input class="input" type="password" name="password" placeholder="{{ _('Не менее 12 символов') }}" required>
+
+  <label class="label-sm">{{ _('Повторите пароль') }}</label>
+  <input class="input" type="password" name="password2" placeholder="{{ _('Повторите пароль') }}" required>
+
+  <button class="btn-wide btn-green" type="submit" id="adminRegBtn" disabled>{{ _('Создать админа') }}</button>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div class="alert {{'alert-error' if cat=='error' else 'alert-success'}}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const f = document.getElementById('adminRegForm');
+  const b = document.getElementById('adminRegBtn');
+  const MSG_PASSWORDS_MISMATCH = "{{ _('Пароли не совпадают') }}";
+
+  function validate(){
+    const invite = f.querySelector('[name="invite_code"]');
+    const inviteOk = invite ? invite.value.trim() : true;
+
+    const ok =
+      f.full_name.value.trim() &&
+      f.email.value.trim() &&
+      f.password.value.trim().length >= 8 &&
+      f.password2.value.trim() &&
+      f.password.value === f.password2.value &&
+      inviteOk;
+
+    b.disabled = !ok;
+  }
+
+  ['input','change'].forEach(evt=>{
+    f.addEventListener(evt, e=>{
+      if (e.target.name === 'password' || e.target.name === 'password2') {
+        e.target.setCustomValidity(
+          f.password.value && f.password2.value && f.password.value !== f.password2.value
+            ? MSG_PASSWORDS_MISMATCH : ''
+        );
+      }
+      validate();
+    }, true);
+  });
+
+  validate();
+  requestAnimationFrame(()=> window.dispatchEvent(new Event('resize')));
+})();
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Как на обычной регистрации: скролл + центрирование */
+  html, body { height: auto; overflow: auto; }
+
+  /* Работает, если в base.html есть <body data-endpoint="{{ request.endpoint }}"> */
+  body[data-endpoint="auth.register"] main.wrap,
+  body[data-endpoint="auth.admin_register"] main.wrap{
+    height: auto !important;
+    min-height: calc(100vh - var(--topbar-h) - var(--navbar-h));
+    overflow: auto !important;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 20px;
+  }
+
+  /* Отключаем автоскейл только на страницах регистрации */
+  body[data-endpoint="auth.register"] #fit-root,
+  body[data-endpoint="auth.admin_register"] #fit-root{
+    transform: none !important;
+    width: 100%;
+  }
+
+  /* Размеры формы — идентичны user-регистрации */
+  #registerForm, #adminRegForm, #registerForm *, #adminRegForm * { box-sizing: border-box; }
+
+  #adminRegForm{
+    width: min(480px, 94vw);
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    padding: 32px;
+    border-radius: 12px;
+    font-size: 17px;
+  }
+
+  #adminRegForm .h-title { font-size: 36px; font-weight: 700; }
+  #adminRegForm .label-sm { font-size: 14px; font-weight: 600; display:block; margin: 12px 0 8px; }
+
+  #adminRegForm .input{
+    height: 44px;
+    font-size: 17px;
+    margin-bottom: 14px;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  #adminRegForm .btn-wide{
+    height: 52px;
+    font-size: 17px;
+    border-radius: 12px;
+  }
+  #adminRegBtn { margin-top: 20px; }
+
+  #adminRegForm .muted { font-size: 14px; font-weight: 500; }
+  #adminRegForm .link { font-size: 14px; }
+  #adminRegForm .alert{ word-break: break-word; }
+
+  @media (max-height: 700px){
+    #adminRegForm { width: min(440px, 94vw); padding: 26px; }
+    #adminRegForm .h-title { font-size: 32px; }
+    #adminRegForm .input { height: 40px; }
+    #adminRegForm .btn-wide { height: 48px; }
+  }
+</style>
+{% endblock %}

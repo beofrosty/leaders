@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Главная') }} · {{ _('Лидеры года') }}{% endblock %}
+
+{% block content %}
+  <!-- Главная -->
+  <section class="view" data-view="home">
+    <div class="hero">
+      <div class="hero-left">
+        <div class="badge">
+          <img src="{{ url_for('static', filename='logo.png') }}" alt="{{ _('Лого') }}">
+          <span>{{ _('Лидеры<br>года')|safe }}</span>
+        </div>
+        <div>
+          <h1 class="title">{{ _('Лидеры года — система') }}</h1>
+          <p class="subtitle">{{ _('Удобный инструмент для подачи заявок') }}</p>
+        </div>
+      </div>
+
+      {# ⬇️ кнопку показываем по состоянию submitted #}
+      {% if not submitted %}
+        <button class="cta" data-open-apply>{{ _('Подать заявку') }}</button>
+      {% else %}
+        <a class="cta" href="{{ url_for('main.applications') }}" style="pointer-events:auto;">
+          {{ _('Заявка отправлена') }}
+        </a>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Мои заявки -->
+  <section class="view" data-view="apps" style="display:none;">
+    {% if applications and applications|length > 0 %}
+      {% for a in applications %}
+        <div class="card">
+          <h3>{{ _('Заявка отправлена') }}</h3>
+          <p>
+            {% if a['commission_status'] %}
+              {{ _('Статус:') }} {{ a['commission_status'] }}
+            {% else %}
+              {{ _('Ожидайте ответ в течение нескольких дней на почту') }}
+            {% endif %}
+          </p>
+          {% if a['commission_comment'] %}
+            <p>{{ a['commission_comment'] }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="card"><h3>{{ _('У вас пока нет заявок.') }}</h3></div>
+    {% endif %}
+  </section>
+{% endblock %}
+
+{% block modals %}
+{# ⬇️ вообще НЕ рендерим модалку, если уже отправлено #}
+{% if not submitted %}
+<div id="applyOverlay" class="overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="title">
+    <div class="modal-head">
+      <div class="modal-title" id="title">{{ _('Заявка') }}</div>
+      <button class="modal-close" type="button" aria-label="{{ _('Закрыть') }}" data-close-apply>×</button>
+    </div>
+
+    <!-- Stepper -->
+    <div class="stepper" id="stepper">
+      <div class="step active"><div class="dot">1</div><div class="label">{{ _('Личные данные') }}</div></div>
+      <div class="step"><div class="dot">2</div><div class="label">{{ _('Образование') }}</div></div>
+      <div class="step"><div class="dot">3</div><div class="label">{{ _('Опыт и достижения') }}</div></div>
+      <div class="step"><div class="dot">4</div><div class="label">{{ _('Дополнительно') }}</div></div>
+    </div>
+
+    <form id="applyForm" action="{{ url_for('main.form') }}" method="POST" novalidate>
+      <div class="content">
+        <!-- STEP 1 -->
+        <section class="step-pane" data-step="0">
+          <div class="grid">
+            <label class="field"><span>{{ _('ФИО') }}</span>
+              <input name="full_name" required placeholder="{{ _('Иванов Иван Иванович') }}">
+            </label>
+            <label class="field"><span>{{ _('Занимаемая должность') }}</span>
+              <input name="position" required placeholder="{{ _('Руководитель отдела') }}">
+            </label>
+            <label class="field"><span>{{ _('Дата рождения') }}</span>
+              <input type="date" name="birth_date" required>
+            </label>
+            <label class="field"><span>{{ _('Дата создания заявки') }}</span>
+              <input type="date" name="created_at">
+            </label>
+            <label class="field"><span>{{ _('Контактные связи') }}</span>
+              <input name="contacts" required placeholder="{{ _('+996 ... / соцсети') }}">
+            </label>
+            <label class="field"><span>{{ _('Электронная почта') }}</span>
+              <input type="email" name="email" required placeholder="name@example.com">
+            </label>
+            <label class="field" style="grid-column:1/-1"><span>{{ _('Адрес проживания') }}</span>
+              <input name="address" required placeholder="{{ _('Город, улица, дом') }}">
+            </label>
+          </div>
+        </section>
+
+        <!-- STEP 2 -->
+        <section class="step-pane" data-step="1" hidden>
+          <div class="grid">
+            <label class="field"><span>{{ _('Учебное заведение') }}</span>
+              <input name="education_institution" required placeholder="{{ _('ВУЗ/колледж') }}">
+            </label>
+            <label class="field"><span>{{ _('Год окончания') }}</span>
+              <input type="number" name="graduation_year" min="1950" max="2100" required placeholder="2024">
+            </label>
+            <label class="field"><span>{{ _('Специальность/направление') }}</span>
+              <input name="specialization" required placeholder="{{ _('Специальность') }}">
+            </label>
+          </div>
+        </section>
+
+        <!-- STEP 3 -->
+        <section class="step-pane" data-step="2" hidden>
+          <div class="grid">
+            <label class="field"><span>{{ _('Опишите свой опыт лидерства. В каких проектах/инициативах вы принимали участие?') }}</span>
+              <textarea name="leadership_experience" required placeholder="{{ _('(Укажите конкретные примеры, описывая вашу роль и вклад)') }}"></textarea>
+            </label>
+            <label class="field"><span>{{ _('Какие навыки и качества, на ваш взгляд, делают вас хорошим лидером?') }}</span>
+              <textarea name="leader_skills" required></textarea>
+            </label>
+            <label class="field"><span>{{ _('Какие достижения в личной и профессиональной жизни вы считаете наиболее значимыми?') }}</span>
+              <textarea name="personal_achievements" required></textarea>
+            </label>
+            <label class="field"><span>{{ _('Как вы мотивируете команду к достижению целей?') }}</span>
+              <textarea name="motivation" required></textarea>
+            </label>
+          </div>
+        </section>
+
+        <!-- STEP 4 -->
+        <section class="step-pane" data-step="3" hidden>
+          <div class="grid">
+            <label class="field"><span>{{ _('Опишите случай, когда вам пришлось принять сложное решение в условиях неопределенности. Как вы поступили?') }}</span>
+              <textarea name="decision_case" required></textarea>
+            </label>
+            <label class="field"><span>{{ _('Как вы справляетесь с конфликтами в коллективе?') }}</span>
+              <textarea name="conflict_resolution" required></textarea>
+            </label>
+            <label class="field"><span>{{ _('Какие цели вы ставите перед собой в ближайшие 3-5 лет?') }}</span>
+              <textarea name="goals" required></textarea>
+            </label>
+            <label class="field"><span>{{ _('Как участие в конкурсе лидеров может помочь вам в достижении этих целей?') }}</span>
+              <textarea name="contest_benefit" required></textarea>
+            </label>
+            <label class="field"><span>{{ _('Что для вас означает быть лидером?') }}</span>
+              <textarea name="leader_definition" required></textarea>
+            </label>
+            <label class="field"><span>{{ _('Почему вы решили участвовать в этом конкурсе?') }}</span>
+              <textarea name="reason" required></textarea>
+            </label>
+            <label class="field"><span>{{ _('Есть ли у вас опыт участия в аналогичных конкурсах иди проектах? Если да, то в каких?') }}</span>
+              <textarea name="similar_experience" required></textarea>
+            </label>
+            <label class="field agree">
+              <span class="muted"><input type="checkbox" name="consent" required> {{ _('Согласие на обработку персональных данных') }}</span>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close-apply>{{ _('Отмена') }}</button>
+        <button type="button" class="btn btn-primary" id="nextBtn" disabled>{{ _('Продолжить') }}</button>
+        <button type="submit" class="btn btn-primary" id="submitBtn" hidden disabled>{{ _('Завершить') }}</button>
+      </div>
+
+      {% if error %}
+      <div style="color:#fff;background:#dc2626;padding:10px;border-radius:8px;margin:10px 22px;font-weight:500;">
+        {{ error }}
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* Инициализация степпера — только если модалка присутствует */
+(function(){
+  const overlay = document.getElementById('applyOverlay');
+  if(!overlay) return;
+
+  const panes = [...overlay.querySelectorAll('.step-pane')];
+  const steps = [...overlay.querySelectorAll('#stepper .step')];
+  const nextBtn = overlay.querySelector('#nextBtn');
+  const submitBtn = overlay.querySelector('#submitBtn');
+  let current = 0;
+
+  function stepValid(i){
+    const fields = panes[i].querySelectorAll('input, textarea, select');
+    for (const el of fields){
+      if (el.type === 'checkbox') { if (!el.checked) return false; continue; }
+      if (el.hasAttribute('required') && !el.value.trim()) return false;
+      if (el.type === 'email' && el.value && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(el.value)) return false;
+    }
+    return true;
+  }
+
+  function updateButtons(){
+    const last = current === panes.length - 1;
+    if (nextBtn) nextBtn.hidden = last;
+    if (submitBtn) submitBtn.hidden = !last;
+    const target = last ? submitBtn : nextBtn;
+    if (target) target.disabled = !stepValid(current);
+  }
+
+  function showStep(i){
+    panes.forEach((p,idx)=> p.hidden = idx!==i);
+    steps.forEach((s,idx)=>{ s.classList.toggle('active', idx===i); s.classList.toggle('done', idx<i); });
+    current = i; updateButtons();
+  }
+
+  panes.forEach(p=> p.addEventListener('input', updateButtons));
+  nextBtn && nextBtn.addEventListener('click', ()=>{ if(stepValid(current)) showStep(current+1); });
+
+  showStep(0);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="{{ get_locale() or 'ru' }}">
+<head>
+<meta charset="utf-8">
+<title>{{ _('Результат теста') }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--border:#e5e7eb;--shadow:0 8px 30px rgba(0,0,0,.06)}
+body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7f8;margin:0}
+.container{max-width:720px;margin:24px auto;padding:0 18px}
+.lang{font-size:12px;text-align:right;margin-bottom:8px}
+.lang a{color:#334155;text-decoration:none}
+.lang .sep{opacity:.5;margin:0 4px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px}
+.h1{font-size:22px;font-weight:700;margin:0 0 12px}
+.btn{display:inline-block;text-decoration:none;background:#22c55e;color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="lang">
+    <a href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">Русский</a>
+    <span class="sep">·</span>
+    <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">Кыргызча</a>
+  </div>
+
+  <div class="card">
+    <div class="h1">{{ _('Результат') }}</div>
+    <p>{{ _('Тест:') }} <strong>{{ test['title'] }}</strong></p>
+    <p>{{ _('Ваш балл: %(score)d из %(total)d', score=score, total=total) }}</p>
+    <a class="btn" href="{{ url_for('main.index') }}">{{ _('На главную') }}</a>
+  </div>
+</div>
+</body>
+</html>

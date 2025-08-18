@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Мои заявки') }} · {{ _('Лидеры года') }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .apps {max-width: 980px; margin: 0 auto;}
+  .app-card{
+    background:#f7f7f7; border:1px solid #eee; border-radius:12px;
+    padding:16px 18px; margin:14px 0; box-shadow:0 2px 4px rgba(0,0,0,.03);
+  }
+  .app-title{font-weight:600; margin:4px 0 10px; color:#111827}
+  .app-desc{display:flex; align-items:center; gap:8px; color:#64748b; font-size:14px; margin:0 0 8px}
+  .app-reason{color:#0f172a; font-size:14px; margin:6px 0 0}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot-green{background:#22c55e}
+  .dot-red{background:#ef4444}
+  .dot-gray{background:#94a3b8}
+  .divider{height:2px; background:#e5e7eb; border-radius:2px; margin-top:8px}
+  .empty{background:#fff; border:1px dashed #e5e7eb; border-radius:12px; padding:18px; text-align:center; color:#6b7280}
+
+  /* Кнопка «Перейти к тестам» */
+  .btn-go-tests{
+    display:inline-block; padding:10px 14px; border-radius:10px;
+    background:linear-gradient(90deg,#2e7d32,#1b5e20); color:#fff;
+    text-decoration:none; font-weight:600; font-size:14px;
+  }
+  .btn-go-tests:hover{ opacity:.92; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="apps">
+
+  {# Баннер статуса по последней заявке #}
+  {% set latest = (items[0] if items and items|length > 0 else None) %}
+  {% if latest and latest['commission_status'] %}
+    {% set s = latest['commission_status']|lower %}
+    <div id="statusBanner"
+         class="alert {{ 'alert-success' if s[:4] == 'одобр' else 'alert-error' }}"
+         style="margin-top:12px;">
+      <strong>{{ latest['commission_status'] }}</strong>
+      {% if latest['commission_comment'] %} — {{ latest['commission_comment'] }}{% endif %}
+    </div>
+  {% else %}
+    <div id="statusBanner" class="alert" style="display:none; margin-top:12px;"></div>
+  {% endif %}
+
+  {# Карточки по всем заявкам #}
+  {% if items and items|length > 0 %}
+    {% for it in items %}
+      {% set app_id = it['id'] %}
+      {% set status = it['commission_status'] %}
+      {% set comment = it['commission_comment'] %}
+      {% set s = (status|lower) if status else '' %}
+      {% set dot = 'dot-green' if s[:4] == 'одобр' else ('dot-red' if s[:4] == 'откл' else 'dot-gray') %}
+
+      <div class="app-card" data-app-id="{{ app_id }}">
+        <div class="app-title">{{ _('Заявка №') }} {{ loop.index }}</div>
+        <p class="app-desc">
+          <span class="dot {{ dot }}" id="dot-{{ app_id }}"></span>
+          <span id="statusText-{{ app_id }}">
+            {% if not status %}
+              {{ _('Ожидайте ответ в течение нескольких дней на почту') }}
+            {% elif s[:4] == 'одобр' %}
+              {{ _('Одобрено комиссией — проверьте почту, там ссылка на тест') }}
+            {% elif s[:4] == 'откл' %}
+              {{ _('К сожалению, отклонено. Подробности в письме на почте') }}
+            {% else %}
+              {{ _('Статус:') }} {{ status }}
+            {% endif %}
+          </span>
+        </p>
+
+        <p class="app-reason" id="reason-{{ app_id }}" {% if not comment %}style="display:none"{% endif %}>
+          {% if comment %}<strong>{{ _('Комментарий комиссии:') }}</strong> {{ comment }}{% endif %}
+        </p>
+
+        <div class="divider"></div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty">{{ _('У вас пока нет заявок.') }}</div>
+  {% endif %}
+
+  {# Карточка «Тест» #}
+  {% set has_approved = latest and latest['commission_status'] and (latest['commission_status']|lower)[:4] == 'одобр' %}
+  <div class="app-card" id="testCard">
+    <div class="app-title">{{ _('Тест') }}</div>
+    <p class="app-desc" style="justify-content:space-between; align-items:center;">
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span class="dot {{ 'dot-green' if has_approved else 'dot-gray' }}" id="testDot"></span>
+        <span id="testText">
+          {% if has_approved %}
+            {{ _('Вы допущены к тестированию. Можно перейти к тестам.') }}
+          {% else %}
+            {{ _('Ссылка на тест появится после одобрения вашей заявки') }}
+          {% endif %}
+        </span>
+      </span>
+      <a id="testBtn"
+         href="{{ url_for('tests.tests_select') }}"
+         class="btn-go-tests"
+         {% if not has_approved %}style="display:none"{% endif %}>
+        {{ _('Перейти к тестам') }}
+      </a>
+    </p>
+    <div class="divider"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const API = "{{ url_for('main.api_my_application') }}";
+  const banner = document.getElementById('statusBanner');
+  const testCard = document.getElementById('testCard');
+  const testDot = document.getElementById('testDot');
+  const testText = document.getElementById('testText');
+  const testBtn  = document.getElementById('testBtn');
+  const LS_KEY = 'my_app_last_status_apps';
+
+  function setDot(el, status){
+    if(!el) return;
+    el.classList.remove('dot-green','dot-red','dot-gray');
+    const s = (status||'').toLowerCase();
+    el.classList.add(s.startsWith('одобр') ? 'dot-green' : (s.startsWith('откл') ? 'dot-red' : 'dot-gray'));
+  }
+  function statusText(status){
+    if(!status) return "{{ _('Ожидайте ответ в течение нескольких дней на почту') }}";
+    const s = status.toLowerCase();
+    if(s.startsWith('одобр')) return "{{ _('Одобрено комиссией — проверьте почту, там ссылка на тест') }}";
+    if(s.startsWith('откл'))  return "{{ _('К сожалению, отклонено. Подробности в письме на почте') }}";
+    return "{{ _('Статус:') }} " + status;
+  }
+  function renderBanner(status, comment){
+    if(!banner) return;
+    if(!status){ banner.style.display='none'; return; }
+    const ok = status.toLowerCase().startsWith('одобр');
+    banner.className = 'alert ' + (ok ? 'alert-success' : 'alert-error');
+    banner.innerHTML = '<strong>'+status+'</strong>' + (comment ? ' — ' + comment : '');
+    banner.style.display = '';
+  }
+  function toast(status, comment){
+    const ok = status.toLowerCase().startsWith('одобр');
+    const pill = document.createElement('div');
+    pill.className = 'submit-pill';
+    pill.style.top = '12px';
+    pill.innerHTML = '<span class="dot">'+ (ok ? '✓' : '!') +'</span> ' + status + (comment ? ': ' + comment : '');
+    document.body.appendChild(pill);
+    setTimeout(()=>pill.classList.add('hide'), 2500);
+    setTimeout(()=>pill.remove(), 3000);
+  }
+
+  function setTestCardByStatus(status){
+    const approved = !!status && status.toLowerCase().startsWith('одобр');
+    if(testDot) setDot(testDot, approved ? 'Одобрено' : '');
+    if(testText){
+      testText.textContent = approved
+        ? "{{ _('Вы допущены к тестированию. Можно перейти к тестам.') }}"
+        : "{{ _('Ссылка на тест появится после одобрения вашей заявки') }}";
+    }
+    if(testBtn){
+      testBtn.style.display = approved ? '' : 'none';
+    }
+  }
+
+  async function poll(){
+    try{
+      const r = await fetch(API, {cache:'no-store'});
+      if(!r.ok) return;
+      const j = await r.json();
+      if(!j.exists) return;
+
+      const {id, status, comment} = j;
+
+      // баннер
+      renderBanner(status, comment);
+
+      // карточка последней заявки
+      if (id){
+        const card = document.querySelector('.app-card[data-app-id="'+id+'"]');
+        if (card){
+          setDot(card.querySelector('#dot-'+id), status);
+          const st = card.querySelector('#statusText-'+id);
+          if (st) st.textContent = statusText(status);
+          const rs = card.querySelector('#reason-'+id);
+          if (rs){
+            if (comment){
+              rs.style.display = '';
+              rs.innerHTML = '<strong>{{ _("Комментарий комиссии:") }}</strong> ' + comment;
+            }else{
+              rs.style.display = 'none';
+              rs.textContent = '';
+            }
+          }
+        }
+      }
+
+      // карточка «Тест»
+      setTestCardByStatus(status);
+
+      // тост при изменении
+      const last = localStorage.getItem(LS_KEY) || '';
+      if (status && status !== last){
+        toast(status, comment);
+        localStorage.setItem(LS_KEY, status);
+      }
+    }catch(e){}
+  }
+
+  poll();
+  setInterval(poll, 20000);
+})();
+</script>
+{% endblock %}

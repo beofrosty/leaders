@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Забыли пароль') }} · {{ _('Лидеры года') }}{% endblock %}
+{% block navbar %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Только размеры/типографика формы. Скролл страницы не трогаем. */
+  #forgotForm, #forgotForm * { box-sizing: border-box; }
+
+  #forgotForm{
+    width: min(480px, 94vw);
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 32px;
+    border-radius: 12px;
+    font-size: 17px;
+  }
+
+  #forgotForm .h-title{
+    font-size: 36px; font-weight: 800; color:#0c2790;
+    text-align: center; margin: 0 0 18px;
+  }
+
+  .label-sm{ display:block; font-size:14px; font-weight:600; margin: 12px 0 8px; }
+
+  #forgotForm .input{
+    width:100%; max-width:100%;
+    height: 44px;
+    font-size: 17px;
+    margin-bottom: 14px;
+  }
+
+  #forgotForm .btn-wide{
+    height: 52px;
+    font-size: 17px;
+    border-radius: 12px;
+  }
+  #forgotBtn { margin-top: 20px; }
+
+  #forgotForm .muted{ font-size:14px; font-weight:500; }
+  #forgotForm .link{ font-size:14px; }
+  #forgotForm .alert{ word-break: break-word; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form class="card" id="forgotForm" method="post" action="{{ url_for('auth.forgot') }}">
+  <div class="h-title">{{ _('Забыли пароль') }}</div>
+
+  <label class="label-sm">E-mail</label>
+  <input class="input" type="email" name="email" placeholder="you@example.com" required>
+
+  <button class="btn-wide btn-green" type="submit" id="forgotBtn" disabled>{{ _('Отправить ссылку') }}</button>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div class="alert {{'alert-error' if cat=='error' else 'alert-success'}}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <span class="muted">{{ _('Вспомнили пароль?') }} <a class="link" href="{{ url_for('auth.login') }}">{{ _('Войти') }}</a></span>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const f = document.getElementById('forgotForm');
+  const b = document.getElementById('forgotBtn');
+  const toggle = () => b.disabled = !(f.email.value.trim());
+  f.email.addEventListener('input', toggle);
+  toggle();
+
+  // Дадим base.html пересчитать автоскейл
+  requestAnimationFrame(()=> window.dispatchEvent(new Event('resize')));
+})();
+</script>
+{% endblock %}

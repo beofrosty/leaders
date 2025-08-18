@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Регистрация') }} · {{ _('Лидеры года') }}{% endblock %}
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<form class="card" method="post" action="{{ url_for('auth.register') }}" id="registerForm">
+  <div class="h-title">{{ _('Регистрация') }}</div>
+
+  <label class="label-sm">{{ _('ФИО') }}</label>
+  <input class="input" type="text" name="full_name" placeholder="{{ _('Иванов Иван Иванович') }}" value="{{ form.get('full_name','') }}" required>
+
+  <label class="label-sm">E-mail</label>
+  <input class="input" type="email" name="email" placeholder="you@example.com" value="{{ form.get('email','') }}" required>
+
+  <label class="label-sm">{{ _('Пароль') }}</label>
+  <input class="input" type="password" name="password" placeholder="{{ _('Не менее 12 символов') }}" required>
+
+  <label class="label-sm">{{ _('Повторите пароль') }}</label>
+  <input class="input" type="password" name="password2" placeholder="{{ _('Повторите пароль') }}" required>
+
+  <button class="btn-wide btn-green" type="submit" id="registerBtn" disabled>{{ _('Создать аккаунт') }}</button>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div class="alert {{'alert-error' if cat=='error' else 'alert-success'}}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <span class="muted">{{ _('Уже есть аккаунт?') }} <a class="link" href="{{ url_for('auth.login') }}">{{ _('Войти') }}</a></span>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const f = document.getElementById('registerForm');
+  const b = document.getElementById('registerBtn');
+  const MSG_PASSWORDS_MISMATCH = "{{ _('Пароли не совпадают') }}";
+
+  const validate = () => {
+    const ok =
+      f.full_name.value.trim() &&
+      f.email.value.trim() &&
+      f.password.value.trim().length >= 8 &&
+      f.password2.value.trim() &&
+      f.password.value === f.password2.value;
+    b.disabled = !ok;
+  };
+  ['input','change'].forEach(evt=>{
+    f.addEventListener(evt, e=>{
+      if(e.target.name === 'password2' || e.target.name === 'password'){
+        e.target.setCustomValidity(
+          f.password.value && f.password2.value && f.password.value !== f.password2.value
+            ? MSG_PASSWORDS_MISMATCH
+            : ''
+        );
+      }
+      validate();
+    }, true);
+  });
+  validate();
+
+  requestAnimationFrame(()=> window.dispatchEvent(new Event('resize')));
+})();
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Страница регистрации — со скроллом и центрированием */
+  html, body { height: auto; overflow: auto; }
+
+  body[data-endpoint="auth.register"] main.wrap{
+    height: auto !important;
+    min-height: calc(100vh - var(--topbar-h) - var(--navbar-h));
+    overflow: auto !important;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 20px; /* чуть больше отступ */
+  }
+
+  /* Выключаем автоскейл base.html только тут */
+  body[data-endpoint="auth.register"] #fit-root{
+    transform: none !important;
+    width: 100%;
+  }
+
+  /* ---- Размеры «немного больше» ---- */
+  #registerForm, #registerForm * { box-sizing: border-box; }
+
+  #registerForm{
+    width: min(480px, 94vw);    /* было 400–420px, сделал 480px */
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    padding: 32px;              /* было 28px */
+    border-radius: 12px;
+    font-size: 17px;            /* было 16px */
+  }
+
+  #registerForm .h-title { font-size: 36px; font-weight: 700; } /* было 34px */
+  #registerForm .label-sm { font-size: 14px; font-weight: 600; display:block; margin: 12px 0 8px; }
+
+  #registerForm .input{
+    height: 44px;               /* было 35px */
+    font-size: 17px;
+    margin-bottom: 14px;        /* было 12px */
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  #registerForm .btn-wide{
+    height: 52px;               /* было 48px */
+    font-size: 17px;
+    border-radius: 12px;
+  }
+  #registerBtn { margin-top: 20px; } /* было 18px */
+
+  #registerForm .muted { font-size: 14px; font-weight: 500; }
+  #registerForm .link { font-size: 14px; }
+  #registerForm .alert{ word-break: break-word; }
+
+  /* На низких экранах делаем немного компактнее */
+  @media (max-height: 700px){
+    #registerForm { width: min(440px, 94vw); padding: 26px; }
+    #registerForm .h-title { font-size: 32px; }
+    #registerForm .input { height: 40px; }
+    #registerForm .btn-wide { height: 48px; }
+  }
+</style>
+{% endblock %}

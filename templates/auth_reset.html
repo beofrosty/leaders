@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Смена пароля') }} · {{ _('Лидеры года') }}{% endblock %}
+{% block navbar %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  #resetForm { font-size:16px; }
+  #resetForm .h-title{ font-size:34px; font-weight:700; color:#0c2790; text-align:center; margin:0 0 18px;}
+  #resetForm .input{ height:35px; font-size:16px; }
+  #resetForm .btn-wide{ height:48px; font-size:16px; border-radius:12px; }
+  #resetBtn { margin-top: 18px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form class="card" id="resetForm" method="post">
+  <div class="h-title">{{ _('Смена пароля') }}</div>
+
+  <label class="label-sm">{{ _('Новый пароль') }}</label>
+  <input class="input" type="password" name="password" placeholder="{{ _('Не менее 12 символов') }}" required>
+
+  <label class="label-sm">{{ _('Повторите пароль') }}</label>
+  <input class="input" type="password" name="password2" placeholder="{{ _('Повторите пароль') }}" required>
+
+  <button class="btn-wide btn-green" type="submit" id="resetBtn" disabled>{{ _('Сохранить') }}</button>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div class="alert {{'alert-error' if cat=='error' else 'alert-success'}}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const f = document.getElementById('resetForm');
+  const b = document.getElementById('resetBtn');
+  function toggle(){
+    const p = f.password.value.trim();
+    const p2 = f.password2.value.trim();
+    const ok = p.length >= 12 && p2.length >= 12 && p === p2;
+    b.disabled = !ok;
+  }
+  f.addEventListener('input', toggle, true);
+  toggle();
+})();
+</script>
+{% endblock %}

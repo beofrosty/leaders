@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="{{ get_locale() or 'ru' }}">
+<head>
+<meta charset="utf-8">
+<title>{{ (_('Новый тест') if mode=='new' else _('Редактирование теста')) ~ ' · ' ~ _('Лидеры года') }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--g:#1c7a45;--bg:#f6f7f8;--border:#e5e7eb;--shadow:0 8px 30px rgba(0,0,0,.06);--green:#22c55e}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg)}
+.container{max-width:900px;margin:24px auto;padding:0 18px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px}
+.h1{font-size:20px;font-weight:700;margin:8px 0 14px}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+input,textarea{padding:10px;border:1px solid var(--border);border-radius:8px;width:100%}
+textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace}
+.btns{display:flex;gap:10px;margin-top:14px}
+.btn{border:none;background:#22c55e;color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:700}
+.btn-ghost{background:#e5e7eb;color:#111827;text-decoration:none;display:inline-block}
+.alert{margin-top:10px;padding:10px;border-radius:8px}
+.alert-success{background:#ecfdf5;color:#065f46}
+.alert-error{background:#fef2f2;color:#991b1b}
+.lang{font-size:12px;margin:8px 0 0;text-align:right}
+.lang a{color:#334155;text-decoration:none}
+.lang .sep{opacity:.5}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="lang">
+    <a href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">Русский</a>
+    <span class="sep">·</span>
+    <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">Кыргызча</a>
+  </div>
+
+  <h1 class="h1">{{ _('Новый тест') if mode=='new' else _('Редактирование теста') }}</h1>
+  <form class="card" method="post">
+    <div class="field">
+      <label>{{ _('Название') }}</label>
+      <input name="title" value="{{ form.get('title','') }}" required>
+    </div>
+    <div class="field">
+      <label>{{ _('Описание (необязательно)') }}</label>
+      <input name="description" value="{{ form.get('description','') }}">
+    </div>
+    <div class="field">
+      <label>{{ _('Длительность (мин.)') }}</label>
+      <input type="number" name="duration_minutes" value={{ form.get('duration_minutes',0) }}>
+    </div>
+    <div class="field">
+      <label>{{ _('Вопросы (JSON)') }}</label>
+      <textarea name="questions" required>
+{{ form.get('questions','[\n  { "q":"' ~ _('Пример вопроса?') ~ '", "options":["A","B","C","D"], "correct_index": 1 }\n]') }}
+      </textarea>
+      <div class="alert">{{ _('Формат: массив объектов') }} <code>{q, options:[...], correct_index}</code></div>
+    </div>
+    <div class="btns">
+      <a class="btn-ghost" href="{{ url_for('admin.admin_tests') }}">{{ _('Отмена') }}</a>
+      <button class="btn" type="submit">{{ _('Сохранить') }}</button>
+    </div>
+
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div class="alert {{'alert-error' if cat=='error' else 'alert-success'}}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+    {% endwith %}
+  </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Вход') }} · {{ _('Лидеры года') }}{% endblock %}
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<form class="card" method="post" action="{{ url_for('auth.login') }}" id="loginForm">
+  <div class="h-title">{{ _('Вход') }}</div>
+
+  <label class="label-sm">{{ _('E-mail') }}</label>
+  <input class="input" type="email" name="email" placeholder="{{ _('Введите e-mail') }}" value="{{ form.get('email','') }}" required>
+
+  <label class="label-sm">{{ _('Пароль') }}</label>
+  <input class="input" type="password" name="password" placeholder="{{ _('Введите пароль') }}" required>
+
+  <div class="row-end"><a class="link" href="{{ url_for('auth.forgot') }}">{{ _('Забыли пароль?') }}</a></div>
+
+  <input type="hidden" name="next" value="{{ next or '' }}">
+
+  <button class="btn-wide btn-green" type="submit" id="loginBtn" disabled>{{ _('Войти') }}</button>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div class="alert {{'alert-error' if cat=='error' else 'alert-success'}}">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <span class="muted">{{ _('Нет аккаунта?') }} <a class="link" href="{{ url_for('auth.register') }}">{{ _('Регистрация') }}</a></span>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const f = document.getElementById('loginForm');
+  const b = document.getElementById('loginBtn');
+  const toggle = () => b.disabled = !(f.email.value.trim() && f.password.value.trim());
+  f.email.addEventListener('input',toggle, true);
+  f.password.addEventListener('input',toggle, true);
+  toggle();
+
+  // Попросим base.html пересчитать автоскейл
+  requestAnimationFrame(()=> window.dispatchEvent(new Event('resize')));
+})();
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Чуть больше, но всё ещё помещается без скролла за счёт автоскейла base.html */
+  #loginForm, #loginForm * { box-sizing: border-box; }
+
+  #loginForm{
+    width: min(480px, 94vw);    /* было 420px → стало 480px */
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 32px;              /* было 28px */
+    border-radius: 12px;
+    font-size: 17px;            /* было 16px */
+  }
+
+  #loginForm .h-title { font-size: 36px; font-weight: 700; } /* было 34px */
+  #loginForm .label-sm { font-size: 14px; font-weight: 600; display:block; margin:12px 0 8px; }
+
+  #loginForm .input{
+    width: 100%;
+    max-width: 100%;
+    height: 48px;               /* было 42px */
+    font-size: 17px;
+    margin-bottom: 14px;
+  }
+
+  .row-end { margin: 8px 2px 6px; }
+
+  #loginForm .btn-wide{
+    height: 52px;               /* было 48px */
+    font-size: 17px;
+    border-radius: 12px;
+  }
+
+  #loginForm .link,
+  #loginForm .muted { font-size: 14px; font-weight: 500; }
+
+  /* На очень низких экранах — чуть компактнее */
+  @media (max-height: 700px){
+    #loginForm { width: min(440px, 94vw); padding: 26px; }
+    #loginForm .h-title { font-size: 32px; }
+    #loginForm .input { height: 44px; }
+    #loginForm .btn-wide { height: 48px; }
+  }
+</style>
+{% endblock %}
