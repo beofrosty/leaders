@@ -144,6 +144,16 @@ def register():
 
 # ---- логин/логаут ----------------------------------------------------------
 
+from flask import (
+    Blueprint, render_template, request, redirect,
+    url_for, session, flash
+)
+from werkzeug.security import check_password_hash
+from ..db import get_user_by_email
+from flask_babel import gettext as _
+
+bp = Blueprint('auth', __name__)
+
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -151,27 +161,28 @@ def login():
         password = request.form.get("password") or ""
         try:
             user = get_user_by_email(email)
-        except Exception as e:
-            # аккуратно логируем и показываем пользователю дружелюбное сообщение
-            # (в проде — лог через logger)
-            flash(("error", "Временная ошибка подключения к базе. Попробуйте ещё раз."))
-            return render_template("login.html"), 500
+        except Exception:
+            flash(("error", _("Временная ошибка подключения к базе. Попробуйте ещё раз.")))
+            return render_template("login.html", form=request.form), 500
 
         if not user or not user.get("password_hash") or not check_password_hash(user["password_hash"], password):
-            flash(("error", "Неверная почта или пароль."))
-            return render_template("login.html"), 401
+            flash(("error", _("Неверная почта или пароль.")))
+            return render_template("login.html", form=request.form), 401
 
+        # логиним
         session["user_email"] = user["email"]
-        # ... остальная логика
         return redirect(url_for("main.applications"))
 
-    return render_template("login.html")
+    # GET-запрос
+    return render_template("login.html", form={})
 
 @bp.route('/logout')
 def logout():
     session.clear()
-    flash(('success', _('Вы вышли из аккаунта.')))
+    # можно убрать flash совсем, если не нужно уведомление:
+    # flash(('success', _('Вы вышли из аккаунта.')))
     return redirect(url_for('auth.login'))
+
 
 
 # ---- забыли пароль / сброс --------------------------------------------------
