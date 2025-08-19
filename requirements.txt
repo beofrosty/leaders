@@ -2,5 +2,3 @@ Flask==3.0.3
 gunicorn==22.0.0
 Flask-Mail==0.9.1
 Flask-Babel==4.0.0
-psycopg[binary]>=3.2.2,<3.3
-psycopg_pool>=3.2,<3.3
