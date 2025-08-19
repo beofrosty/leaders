@@ -15,4 +15,4 @@ class Config:
     MAIL_DEFAULT_SENDER = (os.getenv("MAIL_SENDER_NAME", "Комиссия"),
                            os.getenv("MAIL_USERNAME", "aku03082015@gmail.com"))
 
-    ADMIN_INVITE_CODE = os.getenv("ADMIN_INVITE_CODE", "")
+    ADMIN_INVITE_CODE = os.getenv("ADMIN_INVITE_CODE", "12345")
