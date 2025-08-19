@@ -144,16 +144,6 @@ def register():
 
 # ---- логин/логаут ----------------------------------------------------------
 
-from flask import (
-    Blueprint, render_template, request, redirect,
-    url_for, session, flash
-)
-from werkzeug.security import check_password_hash
-from ..db import get_user_by_email
-from flask_babel import gettext as _
-
-bp = Blueprint('auth', __name__)
-
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
