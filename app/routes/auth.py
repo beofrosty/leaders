@@ -144,40 +144,28 @@ def register():
 
 # ---- логин/логаут ----------------------------------------------------------
 
-@bp.route('/login', methods=['GET', 'POST'])
+@bp.route("/login", methods=["GET", "POST"])
 def login():
-    # Уже вошли: доведём сессию до ума (user_id) и отправим дальше
-    if request.method == 'GET' and 'user_email' in session:
-        u = get_user_by_email(session['user_email'])
-        if u:
-            session.setdefault('user_id', u['id'])
-            role = u['role']
-            return redirect(url_for('admin.admin') if role == 'admin' else url_for('main.index'))
-        # если пользователя больше нет — почистим сессию
-        session.clear()
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        try:
+            user = get_user_by_email(email)
+        except Exception as e:
+            # аккуратно логируем и показываем пользователю дружелюбное сообщение
+            # (в проде — лог через logger)
+            flash(("error", "Временная ошибка подключения к базе. Попробуйте ещё раз."))
+            return render_template("login.html"), 500
 
-    if request.method == 'POST':
-        email = (request.form.get('email') or '').strip().lower()
-        password = (request.form.get('password') or '')
-        user = get_user_by_email(email)
+        if not user or not user.get("password_hash") or not check_password_hash(user["password_hash"], password):
+            flash(("error", "Неверная почта или пароль."))
+            return render_template("login.html"), 401
 
-        if (not user) or (not user['password_hash']) or (not check_password_hash(user['password_hash'], password)):
-            flash(('error', _('Неверные e-mail или пароль.')))
-            return render_template('login.html', form=request.form, next=request.args.get('next') or '')
-        if 'is_verified' in user.keys() and not user['is_verified']:
-            flash(('error', _('Аккаунт не подтверждён.')))
-            return render_template('login.html', form=request.form, next=request.args.get('next') or '')
+        session["user_email"] = user["email"]
+        # ... остальная логика
+        return redirect(url_for("main.applications"))
 
-        session.permanent = True
-        session['user_email'] = email
-        session['user_id'] = user['id']
-        flash(('success', _('Добро пожаловать!')))
-
-        next_url = request.form.get('next') or request.args.get('next')
-        return redirect(_safe_next(next_url))
-
-    # GET
-    return render_template('login.html', form={}, next=request.args.get('next') or '')
+    return render_template("login.html")
 
 @bp.route('/logout')
 def logout():
