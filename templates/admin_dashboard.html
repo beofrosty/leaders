@@ -281,7 +281,7 @@
           <label class="field"><span>{{ _('Что для вас означает быть лидером?') }}</span><textarea id="f_leader_definition" readonly></textarea></label>
           <label class="field"><span>{{ _('Почему вы решили участвовать в этом конкурсе?') }}</span><textarea id="f_reason" readonly></textarea></label>
           <label class="field"><span>{{ _('Есть ли у вас опыт участия в аналогичных конкурсах иди проектах? Если да, то в каких?') }}</span><textarea id="f_similar_experience" readonly></textarea></label>
-          <label class="field"><span>{{ _('Согласие на обработку персональных данных') }}</span><input id="f_consent" readonly></label>
+
         </div>
       </section>
 
@@ -384,8 +384,19 @@
     leader_definition: "{{ _('Что значит быть лидером') }}",
     leader_definition_2: "{{ _('Что значит быть лидером (доп.)') }}",
     reason: "{{ _('Почему участвуете') }}",
-    similar_experience: "{{ _('Опыт участия в конкурсах') }}"
+    similar_experience: "{{ _('Опыт участия в конкурсах') }}",
+
+        // --- Тест (для шага 5 "Все поля") ---
+    test_status: "{{ _('Статус теста') }}",
+    // test_title: "{{ _('Название теста') }}",
+    test_score: "{{ _('Баллы за тест') }}",
+    test_total: "{{ _('Всего вопросов') }}",
+    test_percent: "{{ _('Процент правильных, %') }}",
+    // test_time_spent: "{{ _('Время (сек)') }}",
+    // test_answers: "{{ _('Ответы на тест') }}",
   };
+
+   const KV_EXCLUDE = new Set(['id', 'consent']);
 
   // ==== STEP 5: улучшенный список key/value ====
   const kvGrid = document.getElementById('kvGrid');
@@ -446,7 +457,9 @@
 
     // Приоритет известных полей
     const knownOrder = Object.keys(LABELS);
-    const entries = Object.entries(merged).map(([k,v])=>({k, val: (typeof v==='object' && v!==null) ? JSON.stringify(v, null, 2) : v, label: LABELS[k] || k}));
+    const entries = Object.entries(merged)
+      .filter(([k]) => !KV_EXCLUDE.has(k))
+      .map(([k,v])=>({k, val: (typeof v==='object' && v!==null) ? JSON.stringify(v, null, 2) : v, label: LABELS[k] || k}));
     entries.sort((a,b)=>{
       const ia = Math.max(knownOrder.indexOf(a.k), -1); const ib = Math.max(knownOrder.indexOf(b.k), -1);
       const pa = ia === -1 ? 9999 : ia; const pb = ib === -1 ? 9999 : ib;
@@ -495,7 +508,26 @@
     setVal('f_similar_experience', get('similar_experience'));
 
     // Шаг 5 — красиво
-    fillKvList(f, {id:j.id, email:j.email, full_name:j.full_name, created_at:j.created_at});
+    // Шаг 5 — красиво (+ результаты теста, если пройден)
+const t = j.test || null;
+const passed = (t && t.passed) ?? j.test_passed ?? null;
+
+const testFields = {};
+if (t || j.test_score != null) {
+  // Берём из объекта j.test, а если его нет — из плоских полей j.test_*
+  testFields.test_status = (passed === true) ? "{{ _('Пройден') }}" : "{{ _('Не пройден') }}";
+  // testFields.test_title      = (t && t.title)       ?? j.test_title      ?? '';
+  testFields.test_score      = (t && t.score)       ?? j.test_score      ?? null;
+  testFields.test_total      = (t && t.total)       ?? j.test_total      ?? null;
+  testFields.test_percent    = (t && t.percent)     ?? j.test_percent    ?? null;
+  // testFields.test_time_spent = (t && t.time_spent)  ?? j.test_time_spent ?? null;
+  // testFields.test_answers    = (t && t.answers)     ?? j.test_answers    ?? null;
+}
+
+// Сливаем форму + (возможные) тестовые поля и рендерим
+const f2 = { ...f, ...testFields };
+fillKvList(f2, { id:j.id, email:j.email, full_name:j.full_name, created_at:j.created_at });
+
   }
 
   async function decide(status){

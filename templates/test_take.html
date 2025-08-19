@@ -19,6 +19,7 @@
     .btn{border:none;background:#22c55e;color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:700;margin-top:12px}
     .btn:hover{filter:brightness(0.95)}
     .muted{color:#64748b}
+    .timer{font-weight:700}
   </style>
 </head>
 <body>
@@ -35,20 +36,21 @@
       <div class="muted">{{ test['description'] }}</div>
     {% endif %}
 
-    {% for q in questions %}
-      {# Use a stable key for the radio group: prefer q.id, fall back to index #}
-      {% set q_idx = loop.index0 %}
-      {% set q_key = q.id if q.id is defined else q_idx %}
-      {% set group_name = 'q' ~ q_key %}
+    {% if ends_at %}
+      <div class="muted" style="margin-top:6px">
+        {{ _('На прохождение отведено время. Осталось:') }} <span id="timer" class="timer">--:--</span>
+      </div>
+    {% endif %}
 
+    {% for q in questions %}
+      {% set i = loop.index0 %}
       <div class="q">
         <div><strong>{{ loop.index }}.</strong> {{ q.q }}</div>
-
         {% for opt in q.options %}
-          {% set opt_idx = loop.index0 %}
-          {% set input_id = group_name ~ '_' ~ opt_idx %}
+          {% set j = loop.index0 %}
+          {% set input_id = 'q' ~ i ~ '_' ~ j %}
           <label for="{{ input_id }}">
-            <input id="{{ input_id }}" type="radio" name="{{ group_name }}" value="{{ opt_idx }}">
+            <input id="{{ input_id }}" type="radio" name="q{{ i }}" value="{{ j }}">
             {{ opt }}
           </label>
         {% endfor %}
@@ -58,5 +60,31 @@
     <button class="btn" type="submit">{{ _('Отправить') }}</button>
   </form>
 </div>
+
+{% if ends_at %}
+<script>
+(function(){
+  var endsAt = "{{ ends_at|e }}";
+  if(!endsAt) return;
+  var deadline = new Date(endsAt);
+  var timerEl = document.getElementById('timer');
+  var form = document.querySelector('form.card');
+
+  function tick(){
+    var now = new Date();
+    var diff = Math.floor((deadline - now)/1000);
+    if(diff <= 0){
+      if (timerEl) timerEl.textContent = "{{ _('Время вышло') }}";
+      if (form) form.submit(); // авто-отправка: сервер дополнительно проверит время
+      return;
+    }
+    var m = Math.floor(diff/60), s = diff % 60;
+    if (timerEl) timerEl.textContent = (m<10?'0':'')+m+':' +(s<10?'0':'')+s;
+    setTimeout(tick, 1000);
+  }
+  tick();
+})();
+</script>
+{% endif %}
 </body>
 </html>

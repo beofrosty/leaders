@@ -39,46 +39,6 @@ def admin_dashboard():
         has_tests=has_tests
     )
 
-
-@bp.route('/admin/api/app/<app_id>')
-@admin_required
-def admin_app_json(app_id):
-    DB = current_app.config['DB_PATH']
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute("""
-          SELECT a.id AS app_id,
-                 a.form_data,
-                 a.created_at,
-                 a.commission_status,
-                 a.commission_comment,
-                 u.id AS user_id,
-                 u.full_name,
-                 u.email
-          FROM applications a
-          JOIN users u ON u.id = a.user_id
-          WHERE a.id=?
-        """, (app_id,))
-        row = c.fetchone()
-        if not row:
-            return jsonify({"ok": False, "error": "not_found"}), 404
-        try:
-            form = json.loads(row["form_data"] or "{}")
-        except Exception:
-            form = {}
-        return jsonify({
-            "ok": True,
-            "id": row["app_id"],
-            "user_id": row["user_id"],
-            "full_name": row["full_name"],
-            "email": row["email"],
-            "created_at": row["created_at"],
-            "status": row["commission_status"],
-            "comment": row["commission_comment"],
-            "form": form
-        })
-
 @bp.route('/admin/app/<app_id>/update_status', methods=['POST'])
 @admin_required
 def admin_update_app_status(app_id):
@@ -307,7 +267,7 @@ def admin_decide(app_id):
                 test_link = url_for('tests.tests_start', test_id=t['id'], _external=True)
             else:
                 # общий список тестов
-                test_link = url_for('tests.tests_select', _external=True)
+                test_link = url_for('tests.tests', _external=True)
 
     # 4) Шлём письмо
     if dest and dest['email']:
@@ -322,3 +282,136 @@ def admin_decide(app_id):
                               full_name=dest['full_name'])
 
     return jsonify(ok=True, status=status_label, comment=reason or '')
+@bp.route('/admin/api/app/<app_id>')
+@admin_required
+def admin_app_json(app_id):
+    DB = current_app.config['DB_PATH']
+    PASS_PCT = int(current_app.config.get('TEST_PASS_THRESHOLD_PCT', 60))
+
+    def _ceil_pct(total, pct):
+        # потолок от total*pct/100 без math.ceil
+        return (total * pct + 99) // 100
+
+    with sqlite3.connect(DB) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute("""
+          SELECT a.id AS app_id,
+                 a.form_data,
+                 a.created_at,
+                 a.commission_status,
+                 a.commission_comment,
+                 u.id AS user_id,
+                 u.full_name,
+                 u.email
+          FROM applications a
+          JOIN users u ON u.id = a.user_id
+          WHERE a.id=?
+        """, (app_id,))
+        row = c.fetchone()
+        if not row:
+            return jsonify({"ok": False, "error": "not_found"}), 404
+
+        try:
+            form = json.loads(row["form_data"] or "{}")
+        except Exception:
+            form = {}
+
+        # ---- Последняя попытка теста пользователя (если есть)
+        c.execute("""
+          SELECT ta.test_id,
+                 ta.score,
+                 ta.started_at,
+                 ta.finished_at,
+                 ta.answers,
+                 t.title,
+                 t.questions,
+                 t.duration_minutes
+            FROM test_attempts ta
+            JOIN tests t ON t.id = ta.test_id
+           WHERE ta.user_id = ?
+           ORDER BY datetime(ta.finished_at) DESC
+           LIMIT 1
+        """, (row["user_id"],))
+        att = c.fetchone()
+
+        test_payload = None
+        flat = {}  # плоские поля (дубли), если нужно
+
+        if att:
+            # total
+            try:
+                q_list = json.loads(att['questions'] or '[]')
+                total = len(q_list)
+            except Exception:
+                total = None
+
+            # answers (вернём массив)
+            try:
+                answers = json.loads(att['answers'] or '[]')
+            except Exception:
+                answers = None
+
+            score = att['score']
+            percent = None
+            if score is not None and total:
+                try:
+                    percent = round(score * 100 / total)
+                except Exception:
+                    percent = None
+
+            # время в секундах
+            time_spent = None
+            try:
+                st = datetime.fromisoformat(att['started_at']) if att['started_at'] else None
+                fn = datetime.fromisoformat(att['finished_at']) if att['finished_at'] else None
+                if st and fn:
+                    time_spent = int((fn - st).total_seconds())
+            except Exception:
+                time_spent = None
+
+            # порог и passed (настраиваемый процент)
+            min_score = None
+            passed = None
+            if total:
+                min_score = _ceil_pct(total, PASS_PCT)
+                passed = (score is not None and score >= min_score)
+
+            test_payload = {
+                "id": att["test_id"],
+                "title": att["title"],
+                "score": score,
+                "total": total,
+                "percent": percent,
+                "time_spent": time_spent,
+                "answers": answers,
+                "min_score": min_score,
+                "passed": passed,
+            }
+
+            # дубли плоскими (если на фронте так удобнее)
+            flat = {
+                "test_id": att["test_id"],
+                "test_title": att["title"],
+                "test_score": score,
+                "test_total": total,
+                "test_percent": percent,
+                "test_time_spent": time_spent,
+                "test_answers": answers,
+                "test_min_score": min_score,
+                "test_passed": passed,
+            }
+
+        return jsonify({
+            "ok": True,
+            "id": row["app_id"],
+            "user_id": row["user_id"],
+            "full_name": row["full_name"],
+            "email": row["email"],
+            "created_at": row["created_at"],
+            "status": row["commission_status"],
+            "comment": row["commission_comment"],
+            "form": form,
+            "test": test_payload,
+            **flat
+        })

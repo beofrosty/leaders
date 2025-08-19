@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Выбор теста') }} · {{ _('Лидеры года') }}{% endblock %}
+{% block content %}
+  <div style="max-width:900px;margin:20px auto">
+    <h1>{{ _('Доступные тесты') }}</h1>
+    <ul>
+      {% for t in tests %}
+        <li>
+          <a href="{{ url_for('tests.take_test', test_id=t['id']) }}">
+            {{ t['title'] }}{% if t['duration_minutes'] %} ({{ t['duration_minutes'] }} мин){% endif %}
+          </a>
+          {% if t['description'] %}<div>{{ t['description'] }}</div>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endblock %}
