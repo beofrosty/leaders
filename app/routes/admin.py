@@ -301,6 +301,7 @@ def admin_app_json(app_id):
                  a.created_at,
                  a.commission_status,
                  a.commission_comment,
+                 a.test_link,  
                  u.id AS user_id,
                  u.full_name,
                  u.email
@@ -400,6 +401,7 @@ def admin_app_json(app_id):
                 "test_answers": answers,
                 "test_min_score": min_score,
                 "test_passed": passed,
+
             }
 
         return jsonify({
@@ -413,5 +415,6 @@ def admin_app_json(app_id):
             "comment": row["commission_comment"],
             "form": form,
             "test": test_payload,
+            "test_link": row["test_link"],
             **flat
         })

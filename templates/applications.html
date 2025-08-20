@@ -25,6 +25,12 @@
     text-decoration:none; font-weight:600; font-size:14px;
   }
   .btn-go-tests:hover{ opacity:.92; }
+  /* поле для ссылки */
+.link-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.link-label{font-weight:600;margin-right:6px}
+.link-input{flex:1 1 260px;min-width:240px;max-width:520px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}
+.btn-small{padding:8px 12px;border-radius:8px;font-weight:600}
+
 </style>
 {% endblock %}
 
@@ -104,8 +110,36 @@
         {{ _('Перейти к тестам') }}
       </a>
     </p>
-    <div class="divider"></div>
-  </div>
+      <div class="divider"></div>
+
+  {# ↓↓↓ поле появится только когда test_passed == True #}
+  {% if test_passed and latest_app_id %}
+    <form class="test-link-form"
+          action="{{ url_for('main.save_test_link', app_id=latest_app_id) }}"
+          method="POST" style="margin-top:4px">
+      <div class="link-row">
+        <label class="link-label">{{ _('Ваша ссылка на результат теста') }}:</label>
+        <input class="link-input"
+               type="url"
+               name="test_link"
+               value="{{ test_link or '' }}"
+               placeholder="{{ _('Вставьте ссылку сюда (https://...)') }}"
+               required
+               pattern="https?://.+">
+        <button type="submit" class="btn btn-small">{{ _('Сохранить') }}</button>
+        {% if test_link %}
+          <a class="btn btn-ghost btn-small" href="{{ test_link }}" target="_blank" rel="noopener">
+            {{ _('Открыть') }}
+          </a>
+        {% endif %}
+      </div>
+      <p class="app-desc" style="margin:6px 0 0; color:#64748b; font-size:12px">
+        {{ _('После прохождения теста вставьте сюда ссылку и нажмите «Сохранить».') }}
+      </p>
+    </form>
+  {% endif %}
+</div>
+
 
 </div>
 {% endblock %}

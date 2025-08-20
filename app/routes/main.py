@@ -1,8 +1,10 @@
 # app/routes/main.py
+import re
 import sqlite3, uuid, json
 from datetime import datetime
+from os import abort
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, abort
 from ..decorators import login_required
 from ..db import get_user_by_email
 from flask_babel import gettext as _
@@ -165,20 +167,44 @@ def applications():
     with sqlite3.connect(DB) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
+
+        # все заявки пользователя
         c.execute("""
           SELECT a.id,
                  u.full_name,
                  u.email,
                  a.commission_status,
                  a.commission_comment,
-                 a.created_at
+                 a.created_at,
+                 a.test_link
           FROM applications a
           JOIN users u ON u.id = a.user_id
           WHERE a.user_id = ?
           ORDER BY datetime(a.created_at) DESC
         """, (u['id'],))
         items = c.fetchall()
-    return render_template('applications.html', items=items)
+
+        # последняя заявка
+        latest = items[0] if items else None
+
+        # считаем "тест пройден" — есть завершённая попытка
+        c.execute("""
+          SELECT 1
+          FROM test_attempts
+          WHERE user_id=? AND finished_at IS NOT NULL
+          ORDER BY datetime(finished_at) DESC
+          LIMIT 1
+        """, (u['id'],))
+        test_passed = c.fetchone() is not None
+
+    return render_template(
+        'applications.html',
+        items=items,
+        test_passed=test_passed,
+        latest_app_id=(latest['id'] if latest else None),
+        test_link=(latest['test_link'] if latest and 'test_link' in latest.keys() else None),
+    )
+
 
 
 
@@ -213,3 +239,39 @@ def api_my_application():
         comment=row['commission_comment'],
         created_at=row['created_at']
     )
+@bp.post('/applications/<string:app_id>/test_link')
+@login_required
+def save_test_link(app_id):
+    # 1) получаем ссылку
+    link = (request.form.get('test_link') or '').strip()
+
+    # 2) простая валидация URL
+    if link and not re.match(r'^https?://', link, re.IGNORECASE):
+        return jsonify(ok=False, error='bad_url'), 400
+
+    # 3) текущий пользователь
+    u = get_user_by_email(session['user_email'])
+    if not u:
+        return jsonify(ok=False, error='unauth'), 401
+
+    # 4) обновляем в БД, проверяя владельца заявки
+    DB = current_app.config['DB_PATH']
+    with sqlite3.connect(DB) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        app_row = c.execute(
+            "SELECT id, user_id FROM applications WHERE id=?",
+            (app_id,)
+        ).fetchone()
+        if not app_row:
+            abort(404)
+        if app_row['user_id'] != u['id']:
+            abort(403)
+
+        c.execute("UPDATE applications SET test_link=? WHERE id=?", (link, app_id))
+        conn.commit()
+
+    # 5) ответ (AJAX или обычный POST)
+    if request.headers.get('X-Requested-With') == 'fetch':
+        return jsonify(ok=True, test_link=link)
+    return redirect(url_for('main.applications'))

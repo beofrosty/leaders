@@ -112,6 +112,38 @@
 .kv-empty{display:inline-block;padding:2px 8px;border-radius:999px;background:#fee2e2;color:#9f1239;font-weight:700;font-size:12px}
 .kv-value.collapsed{max-height:120px;overflow:hidden;-webkit-mask-image:linear-gradient(#000,rgba(0,0,0,0));mask-image:linear-gradient(#000,rgba(0,0,0,0))}
 .kv-toggle{margin-top:6px;display:inline-block;border:none;background:transparent;color:#0b7a45;font-weight:700;cursor:pointer}
+
+  /* ===== ЯЗЫК — как на первом скрине ===== */
+.lang-switch{position:relative;display:inline-block}
+.btn-lang{
+  display:inline-flex;align-items:center;gap:8px;
+  background:#fff;border:1px solid #e5e7eb;border-radius:8px;
+  padding:6px 10px; cursor:pointer; height:34px;
+}
+.btn-lang .caret{margin-left:4px; font-size:12px; opacity:.75}
+.btn-lang img.flag-round{width:20px;height:20px;border-radius:50%}
+
+.lang-menu{
+  position:absolute; right:0; top:calc(100% + 8px); z-index:1000;
+  display:none; min-width:200px; background:#fff;
+  border:1px solid #e5e7eb; border-radius:12px;
+  box-shadow:0 12px 30px rgba(2,6,23,.18); padding:6px;
+}
+.lang-switch.open .lang-menu{display:block}
+
+.lang-item{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; border-radius:8px;
+  text-decoration:none; color:#0f172a; line-height:1.2;
+}
+.lang-item:hover{background:#f8fafc}
+.lang-item img.flag-round{width:20px;height:20px; border-radius:50%}
+.lang-item .check{
+  margin-left:auto; font-weight:700; color:var(--green); opacity:0;
+  transition:opacity .12s ease;
+}
+.lang-item.active .check{opacity:1}
+
 </style>
 </head>
 <body>
@@ -133,22 +165,29 @@
     <header class="topbar">
       {% set cur = (get_locale() or 'ru') %}
       {% set flags = {'ru': url_for('static', filename='ru.png'), 'ky': url_for('static', filename='ky.png')} %}
-      <div class="lang-switch" id="langSwitch" style="position:relative;margin-right:auto;padding-left:16px">
-        <button class="btn-lang" type="button">
-          <img src="{{ flags[cur] }}" alt="" class="flag-round">
-          {{ 'Русский' if cur=='ru' else 'Кыргызча' }} <span class="caret">▾</span>
-        </button>
-        <div class="lang-menu">
-          <a href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
-            <img src="{{ flags['ru'] }}" alt="" class="flag-round"> Русский
-            {% if cur=='ru' %}<span class="current-mark">✓</span>{% endif %}
-          </a>
-          <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
-            <img src="{{ flags['ky'] }}" alt="" class="flag-round"> Кыргызча
-            {% if cur=='ky' %}<span class="current-mark">✓</span>{% endif %}
-          </a>
-        </div>
-      </div>
+     <div class="lang-switch" id="langSwitch" style="margin-right:auto;padding-left:16px">
+  <button class="btn-lang" type="button" aria-haspopup="listbox" aria-expanded="false">
+    <img src="{{ flags[cur] }}" alt="" class="flag-round">
+    <span class="lbl">{{ 'Русский' if cur=='ru' else 'Кыргызча' }}</span>
+    <span class="caret">▾</span>
+  </button>
+
+  <div class="lang-menu" role="listbox" aria-label="{{ _('Выбор языка') }}">
+    <a class="lang-item {{ 'active' if cur=='ru' else '' }}"
+       href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
+      <img src="{{ flags['ru'] }}" alt="" class="flag-round">
+      <span>Русский</span>
+      <span class="check" aria-hidden="true">✓</span>
+    </a>
+    <a class="lang-item {{ 'active' if cur=='ky' else '' }}"
+       href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
+      <img src="{{ flags['ky'] }}" alt="" class="flag-round">
+      <span>Кыргызча</span>
+      <span class="check" aria-hidden="true">✓</span>
+    </a>
+  </div>
+</div>
+
 
       <div class="user">
         <div class="who">
@@ -394,6 +433,7 @@
     test_percent: "{{ _('Процент правильных, %') }}",
     // test_time_spent: "{{ _('Время (сек)') }}",
     // test_answers: "{{ _('Ответы на тест') }}",
+     test_link: "{{ _('Ссылка на видео') }}",
   };
 
    const KV_EXCLUDE = new Set(['id', 'consent']);
@@ -408,25 +448,44 @@
     const wrap = document.createElement('div'); wrap.className = 'kv-item';
     const label = document.createElement('div'); label.className='kv-label'; label.textContent = labelText;
 
-    const value = document.createElement('div'); value.className='kv-value'; value.textContent = (rawVal ?? '') === '' ? '' : String(rawVal);
+    const s = String(rawVal ?? '').trim();
+    const isUrl = /^https?:\/\/\S+$/i.test(s);
+
+    const value = document.createElement('div'); value.className='kv-value';
     if (kvCollapseLong.checked) value.classList.add('collapsed');
-    if ((rawVal ?? '') === '') {
+
+    if (!s){
       const badge = document.createElement('span'); badge.className='kv-empty'; badge.textContent='{{ _("Пусто") }}';
       value.appendChild(badge);
+    } else if (isUrl){
+      const a = document.createElement('a');
+      a.href = s; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = s;
+      value.appendChild(a);
+    } else {
+      value.textContent = s;
     }
 
     const actions = document.createElement('div'); actions.className='kv-actions';
     const copyBtn = document.createElement('button'); copyBtn.type='button'; copyBtn.className='kv-copy'; copyBtn.textContent='{{ _("Копировать") }}';
     copyBtn.addEventListener('click', ()=> {
-      navigator.clipboard.writeText(String(rawVal ?? ''));
+      navigator.clipboard.writeText(s);
       const old = copyBtn.textContent; copyBtn.textContent='{{ _("Скопировано!") }}'; setTimeout(()=>copyBtn.textContent=old, 1200);
     });
+
     const toggleBtn = document.createElement('button'); toggleBtn.type='button'; toggleBtn.className='kv-toggle';
     toggleBtn.textContent = value.classList.contains('collapsed') ? '{{ _("Развернуть") }}' : '{{ _("Свернуть") }}';
     toggleBtn.addEventListener('click', ()=> {
       value.classList.toggle('collapsed');
       toggleBtn.textContent = value.classList.contains('collapsed') ? '{{ _("Развернуть") }}' : '{{ _("Свернуть") }}';
     });
+
+    if (isUrl){
+      const openA = document.createElement('a');
+      openA.href = s; openA.target = '_blank'; openA.rel = 'noopener';
+      openA.className = 'kv-copy'; openA.textContent = '{{ _("Открыть") }}';
+      actions.append(openA);
+    }
 
     actions.append(copyBtn, toggleBtn);
     wrap.append(label, value, actions);
@@ -510,7 +569,9 @@
     // Шаг 5 — красиво
     // Шаг 5 — красиво (+ результаты теста, если пройден)
 const t = j.test || null;
-const passed = (t && t.passed) ?? j.test_passed ?? null;
+const passed =
+  (t && typeof t.passed !== 'undefined') ? t.passed :
+  (typeof j.test_passed !== 'undefined' ? j.test_passed : null);
 
 const testFields = {};
 if (t || j.test_score != null) {
@@ -523,6 +584,18 @@ if (t || j.test_score != null) {
   // testFields.test_time_spent = (t && t.time_spent)  ?? j.test_time_spent ?? null;
   // testFields.test_answers    = (t && t.answers)     ?? j.test_answers    ?? null;
 }
+// Ссылка на видео/результат — берём из j.test.link или j.test_link
+const link =
+  (t && (t.link || t.video_link)) ??
+  j.test_link ??
+  j.video_link ??
+  null;
+
+// показываем только если тест пройден и ссылка есть
+if (passed === true && link) {
+  testFields.test_link = link;
+}
+
 
 // Сливаем форму + (возможные) тестовые поля и рендерим
 const f2 = { ...f, ...testFields };
