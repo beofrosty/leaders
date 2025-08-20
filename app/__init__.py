@@ -6,7 +6,7 @@ from .config import Config
 from .extensions import mail, babel
 from .db import (
     init_db, ensure_user_columns, ensure_applications_table, ensure_tests_tables,
-    ensure_users_index_email, ensure_password_resets_table, ensure_applications_columns
+    ensure_users_index_email, ensure_password_resets_table,
 )
 from .routes.auth import bp as auth_bp
 from .routes.main import bp as main_bp
@@ -89,7 +89,6 @@ def create_app():
         ensure_user_columns()
         ensure_users_index_email()
         ensure_applications_table()
-        ensure_applications_columns()
         ensure_tests_tables()
         ensure_password_resets_table()
 
