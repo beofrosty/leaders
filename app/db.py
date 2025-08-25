@@ -60,24 +60,25 @@ def init_pool(app=None) -> None:
     global _pool, _dsn_cache
     if _pool is not None:
         return
-    dsn = _resolve_dsn(app)
-    dsn = _augment_conninfo(dsn)  # ← добавим sslmode=require и options
+    dsn = _augment_conninfo(_resolve_dsn(app))
     _dsn_cache = dsn
     _pool = ConnectionPool(
         conninfo=dsn,
         min_size=int(os.getenv("PG_MIN_POOL", "1")),
         max_size=int(os.getenv("PG_MAX_POOL", "10")),
         timeout=10,          # ждать свободный коннект
-        max_idle=60,         # держать коннект неиспользуемым не дольше 60с
-        max_lifetime=300,    # переоткрывать коннект каждые ~5 минут
+        max_idle=60,         # коннект простаивает не дольше 60с
+        max_lifetime=300,    # пересоздавать каждые ~5 мин
         kwargs={
             "row_factory": dict_row,
             "connect_timeout": 10,
-            # TCP keepalives — помогают отвалам прокси
+            # libpq keepalive
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 10,
             "keepalives_count": 3,
+            # вот сюда переносим statement_timeout
+            "options": "-c statement_timeout=15000",
         },
     )
 
@@ -86,9 +87,14 @@ def init_pool(app=None) -> None:
 def get_conn():
     if _pool is not None:
         return _pool.connection()
-    dsn = _dsn_cache or _resolve_dsn()
-    return psycopg.connect(_augment_conninfo(dsn), row_factory=dict_row)  # ← здесь тоже
-
+    dsn = _augment_conninfo(_dsn_cache or _resolve_dsn())
+    return psycopg.connect(
+        dsn,
+        row_factory=dict_row,
+        connect_timeout=10,
+        keepalives=1, keepalives_idle=30, keepalives_interval=10, keepalives_count=3,
+        options="-c statement_timeout=15000",
+    )
 
 
 # ---------- Инициализация схемы ----------
@@ -329,7 +335,5 @@ def _augment_conninfo(dsn: str) -> str:
     # добавляем sslmode=require, если не указан
     if "sslmode=" not in dsn:
         dsn += ("&" if "?" in dsn else "?") + "sslmode=require"
-    # задаём statement_timeout (например 15s), если хотите
-    if "options=" not in dsn:
-        dsn += ("&" if "?" in dsn else "?") + "options=-c statement_timeout=15000"
     return dsn
+
