@@ -8,10 +8,10 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_babel import gettext as _
 from flask_mail import Message  # Mail(app) должен быть инициализирован
-from ..db import get_user_by_email, get_conn
+from ..db import get_user_by_email, get_conn, _pool
 from ..decorators import current_user  # если используешь где-то ещё
 import psycopg
-
+from psycopg import OperationalError
 bp = Blueprint('auth', __name__)
 
 # ---- helpers ---------------------------------------------------------------
@@ -48,9 +48,14 @@ def ru_plural(n, one, few, many):
 def admin_register():
     code_env = current_app.config.get('ADMIN_INVITE_CODE', '')
 
-    with get_conn() as conn, conn.cursor() as c:
-        c.execute("SELECT COUNT(*) AS cnt FROM users WHERE role = %s", ('admin',))
-        has_admin = (c.fetchone()['cnt'] or 0) > 0
+    # ВАЖНО: считаем флаг через ретрай (и для GET, и для POST)
+    try:
+        has_admin = _count_admins_with_retry()
+    except Exception:
+        current_app.logger.exception("Failed to check admins count")
+        # при недоступной БД покажем форму без кода, но с ошибкой
+        flash(('error', _('База данных недоступна. Попробуйте позже.')))
+        return render_template('admin_register.html', form={'require_code': True})
 
     if request.method == 'POST':
         code = (request.form.get('invite_code') or '').strip()
@@ -82,7 +87,35 @@ def admin_register():
                     generate_password_hash(password), True, _utc_now(), 'admin'
                 ))
                 conn.commit()
-        except psycopg.Error:
+        except OperationalError as e:
+            # ещё одна страховка на момент INSERT
+            msg = str(e)
+            if 'SSL' in msg or 'EOF' in msg or 'bad record mac' in msg:
+                try:
+                    if _pool:
+                        _pool.check()
+                except Exception:
+                    pass
+                # повторная попытка одного INSERT
+                try:
+                    with get_conn() as conn, conn.cursor() as c:
+                        c.execute("""
+                            INSERT INTO users (id, email, full_name, password_hash, is_verified, created_at, role)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            uid, email, full_name,
+                            generate_password_hash(password), True, _utc_now(), 'admin'
+                        ))
+                        conn.commit()
+                except Exception:
+                    current_app.logger.exception("Failed to create admin user after retry")
+                    flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
+                    return render_template('admin_register.html', form=request.form)
+            else:
+                current_app.logger.exception("Failed to create admin user")
+                flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
+                return render_template('admin_register.html', form=request.form)
+        except Exception:
             current_app.logger.exception("Failed to create admin user")
             flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
             return render_template('admin_register.html', form=request.form)
@@ -93,7 +126,9 @@ def admin_register():
         flash(('success', _('Администратор создан!')))
         return redirect(url_for('admin.admin'))
 
+    # GET
     return render_template('admin_register.html', form={'require_code': has_admin})
+
 
 
 # ---- регистрация -----------------------------------------------------------
@@ -282,3 +317,25 @@ def reset(token):
 
     # шаблон формы смены пароля
     return render_template('auth_reset.html')
+def _count_admins() -> bool:
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT COUNT(*) AS cnt FROM users WHERE role = %s", ('admin',))
+        row = c.fetchone()
+        return bool(row and (row['cnt'] or 0) > 0)
+
+def _count_admins_with_retry() -> bool:
+    try:
+        return _count_admins()
+    except OperationalError as e:
+        msg = str(e)
+        # типичные TLS-обрывы на Render / managed Postgres
+        if 'SSL' in msg or 'EOF' in msg or 'bad record mac' in msg:
+            try:
+                if _pool:
+                    _pool.check()  # пересоздаст протухшие коннекты в пуле
+            except Exception:
+                pass
+            # повторяем один раз
+            return _count_admins()
+        # не похожа на сетевую проблему — пробрасываем дальше
+        raise

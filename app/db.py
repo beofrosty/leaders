@@ -60,27 +60,33 @@ def init_pool(app=None) -> None:
     global _pool, _dsn_cache
     if _pool is not None:
         return
-    dsn = _augment_conninfo(_resolve_dsn(app))
+    dsn = _resolve_dsn(app)
     _dsn_cache = dsn
+
+    # короче живём и чаще обновляем соединения, чтобы не протухали
     _pool = ConnectionPool(
         conninfo=dsn,
         min_size=int(os.getenv("PG_MIN_POOL", "1")),
         max_size=int(os.getenv("PG_MAX_POOL", "10")),
-        timeout=10,          # ждать свободный коннект
-        max_idle=60,         # коннект простаивает не дольше 60с
-        max_lifetime=300,    # пересоздавать каждые ~5 мин
+        max_lifetime=300,   # секунды: пересоздавать соединения каждые ~5 минут
+        max_idle=60,        # держать неиспользуемые не дольше минуты
         kwargs={
             "row_factory": dict_row,
-            "connect_timeout": 10,
-            # libpq keepalive
+            # агрессивные keepalive'ы
             "keepalives": 1,
             "keepalives_idle": 30,
             "keepalives_interval": 10,
             "keepalives_count": 3,
-            # вот сюда переносим statement_timeout
-            "options": "-c statement_timeout=15000",
+            # sslmode=require уже гарантируется _augment_conninfo()
         },
     )
+
+    # подождать, пока пул наполнится, иначе первый запрос словит PoolTimeout
+    try:
+        _pool.wait(timeout=10)
+    except Exception:
+        # не падаем на старте — просто дадим приложению попытаться ещё раз
+        pass
 
 
 
