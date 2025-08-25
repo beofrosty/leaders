@@ -147,6 +147,9 @@ def bootstrap_schema() -> None:
             is_published BOOLEAN NOT NULL DEFAULT FALSE
         )
         """)
+        # ВАЖНО: сначала гарантируем наличие колонки в старых схемах,
+        # потом создаём индекс по этой колонке
+        c.execute("ALTER TABLE tests ADD COLUMN IF NOT EXISTS is_published BOOLEAN NOT NULL DEFAULT FALSE")
         c.execute("CREATE INDEX IF NOT EXISTS idx_tests_created ON tests (created_at DESC)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_tests_published ON tests (is_published)")
 
