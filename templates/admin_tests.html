@@ -43,6 +43,15 @@
   .kebab{appearance:none;border:none;background:transparent;cursor:pointer;padding:6px 8px;border-radius:8px}
   .kebab:after{content:'⋮';font-size:18px;line-height:1}
 
+/* status badge */
+.status{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 8px; border-radius:999px; font-size:12px; font-weight:700;
+  border:1px solid var(--border)
+}
+.status--pub{ background:#eafff1; color:#166534; border-color:#bbf7d0 }
+.status--hidden{ background:#f8fafc; color:#475569 }
+
   /* dropdown */
   .menu{position:absolute;right:8px;top:36px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);min-width:170px;display:none;z-index:5;overflow:hidden}
   .menu.open{display:block}
@@ -97,7 +106,49 @@
   .lang-switch.open .lang-menu{display:block}
     .lang-switch{ position: relative; display:inline-block; }
 
+/* Кнопка пользователя + дропдаун */
+.user-switch{ position:relative; }
+.user-btn{
+  display:flex; align-items:center; gap:10px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:999px;
+  padding:6px 10px; cursor:pointer; height:36px;
+  box-shadow:0 10px 30px -18px rgba(0,0,0,.45), 0 1px 0 rgba(0,0,0,.04);
+}
+.user-btn:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(34,197,94,.20), 0 10px 30px -18px rgba(0,0,0,.45); }
+.user-btn .caret{ font-size:12px; opacity:.7; transition:transform .2s ease, opacity .2s ease; }
+.user-switch.open .user-btn .caret{ transform:rotate(180deg); opacity:1; }
 
+/* переиспользуем твою стилизацию .user */
+.user-inline{ display:flex; align-items:center; gap:10px; }
+.user-inline .who{ display:flex; flex-direction:column; line-height:1.1; text-align:right; }
+.user-inline .name{ font-size:14px; font-weight:600; }
+.user-inline .role{ font-size:12px; color:#475569; }
+.user-inline .avatar{
+  width:34px; height:34px; border-radius:50%;
+  background:#e5f6ec; color:#1e824f; display:grid; place-items:center; font-weight:700;
+}
+
+/* меню */
+.user-menu{
+  position:absolute; right:0; top:calc(100% + 8px); z-index:1000;
+  display:none; min-width:220px; background:#fff;
+  border:1px solid #e5e7eb; border-radius:12px;
+  box-shadow:0 24px 60px rgba(2,6,23,.22); overflow:hidden;
+  transform-origin:top right; transform:scale(.98); opacity:0;
+  transition:transform .16s ease, opacity .16s ease;
+}
+.user-switch.open .user-menu{ display:block; transform:scale(1); opacity:1; }
+
+.user-menu .menu-item,
+.user-menu form button{
+  width:100%; display:flex; align-items:center; gap:10px;
+  padding:10px 12px; background:none; border:0; text-align:left;
+  font:inherit; color:#111827; text-decoration:none; cursor:pointer;
+}
+.user-menu .menu-item:hover,
+.user-menu form button:hover{ background:#f3f4f6; }
+.user-menu .danger{ color:#b91c1c; }
+.user-menu .danger:hover{ background:#fee2e2; }
   </style>
   </head>
   <body>
@@ -141,13 +192,29 @@
   </div>
 
 
-        <div class="user">
-          <div class="who">
-            <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
-            <span class="role">{{ _('Супер админ') if user and user['role']=='admin' else _('Администратор') }}</span>
-          </div>
-          <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
-        </div>
+       <div class="user-switch" id="userSwitch" style="margin-left:8px;">
+  <button class="user-btn" type="button" aria-haspopup="true" aria-expanded="false">
+    <div class="user-inline">
+      <div class="who">
+        <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
+        <span class="role">
+          {{ _('Супер админ') if user and user['role']=='admin' else _('Администратор') }}
+        </span>
+      </div>
+      <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
+    </div>
+    <span class="caret">▾</span>
+  </button>
+
+  <div class="user-menu" role="menu" aria-label="{{ _('Меню пользователя') }}">
+    <a class="menu-item" href="{{ url_for('main.profile', user_id=session['user_id']) }}">👤 {{ _('Профиль участника') }}</a>
+    <form action="{{ url_for('auth.logout') }}" method="post">
+      {# <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> #}
+      <button type="submit" class="danger">🚪 {{ _('Выйти') }}</button>
+    </form>
+  </div>
+</div>
+
       </header>
 
       <main class="content">
@@ -157,31 +224,51 @@
         </div>
 
         {% if tests and tests|length %}
-          {% for t in tests %}
-          <div class="card" data-card>
-            <div class="card-head">
-              <div class="card-title">{{ t['title'] }}</div>
-              <button class="kebab" type="button" data-menu-btn></button>
-            </div>
-            <div class="card-sub">
-  {% set n = (t['q_count'] or 0)|int %}
-  {{ n }} {{ ru_plural(n, _('вопрос'), _('вопроса'), _('вопросов')) }}
-</div>
+  {% for t in tests %}
+    {% set pub = (t['is_published'] or 0) | int %}
+    <div class="card" data-card>
+      <div class="card-head">
+        <div class="card-title">{{ t['title'] }}</div>
+        <div style="display:flex; align-items:center; gap:8px">
+          <span class="status {{ 'status--pub' if pub else 'status--hidden' }}">
+            {{ _('Опубликован') if pub else _('Скрыт') }}
+          </span>
+          <button class="kebab" type="button" data-menu-btn></button>
+        </div>
+      </div>
 
+      <div class="card-sub">
+        {% set n = (t['q_count'] or 0)|int %}
+        {{ n }} {{ ru_plural(n, _('вопрос'), _('вопроса'), _('вопросов')) }}
+      </div>
 
-            <!-- dropdown -->
-            <div class="menu" data-menu>
-              <form method="post" action="{{ url_for('admin.admin_tests_delete', test_id=t['id']) }}" onsubmit="return confirm('{{ _('Удалить тест?') }}')">
-                <button class="danger" type="submit">{{ _('Удалить') }}</button>
-              </form>
-              <button type="button" data-edit-id="{{ t['id'] }}">{{ _('Редактировать') }}</button>
-              <button type="button" data-copy="{{ url_for('tests.take_test', test_id=t['id'], _external=True) }}">{{ _('Ссылка на тест') }}</button>
-            </div>
-          </div>
-          {% endfor %}
-        {% else %}
-          <div class="card">{{ _('Данных нет') }}</div>
-        {% endif %}
+      <!-- dropdown -->
+      <div class="menu" data-menu>
+        <form method="post" action="{{ url_for('admin.admin_tests_delete', test_id=t['id']) }}" onsubmit="return confirm('{{ _('Удалить тест?') }}')">
+          <button class="danger" type="submit">{{ _('Удалить') }}</button>
+        </form>
+
+        <button type="button" data-edit-id="{{ t['id'] }}">{{ _('Редактировать') }}</button>
+
+        <button type="button" data-copy="{{ url_for('tests.take_test', test_id=t['id'], _external=True) }}">
+          {{ _('Ссылка на тест') }}
+        </button>
+
+        <!-- Показать / Скрыть -->
+        <form method="post" action="{{ url_for('admin.admin_tests_publish', test_id=t['id']) }}">
+          {# <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> #}
+          <input type="hidden" name="state" value="{{ 0 if pub else 1 }}">
+          <button type="submit">
+            {{ _('Скрыть тест') if pub else _('Показать тест') }}
+          </button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="card">{{ _('Данных нет') }}</div>
+{% endif %}
+
       </main>
     </div>
   </div>
@@ -418,6 +505,19 @@
     });
     document.addEventListener('click', ()=> sw.classList.remove('open'));
   })();
+    (function(){
+  const sw = document.getElementById('userSwitch');
+  if(!sw) return;
+  const btn = sw.querySelector('.user-btn');
+  function close(){ sw.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const open = sw.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
+})();
   </script>
 
   </body>

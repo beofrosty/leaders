@@ -50,17 +50,19 @@
     <div class="card"><strong>Email:</strong> {{ user[1] }}</div>
 
     <div class="card">
-      <h3>{{ _('Анкета') }}</h3>
-      {% for key, value in form_data.items() %}
-        {% if key != 'consent' %}
-          <div class="question-block">
-            <p><strong>{{ labels.get(key, key) }}:</strong> {{ value }}</p>
-          </div>
-        {% endif %}
-      {% else %}
-        <p>{{ _('Данные отсутствуют') }}</p>
-      {% endfor %}
-    </div>
+  <h3>{{ _('Анкета') }}</h3>
+  {% for key, value in form_data.items() %}
+    {% set k = key|trim %}
+    {% if k not in ['consent', 'created_at'] %}
+      <div class="question-block">
+        <p><strong>{{ labels.get(k, k) }}:</strong> {{ value }}</p>
+      </div>
+    {% endif %}
+  {% else %}
+    <p>{{ _('Данные отсутствуют') }}</p>
+  {% endfor %}
+</div>
+
   </div>
 </body>
 </html>

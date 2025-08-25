@@ -143,6 +143,53 @@
   transition:opacity .12s ease;
 }
 .lang-item.active .check{opacity:1}
+/* Кнопка пользователя + дропдаун */
+.user-switch{ position:relative; }
+.user-btn{
+  display:flex; align-items:center; gap:10px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:999px;
+  padding:6px 10px; cursor:pointer; height:36px;
+  box-shadow:0 10px 30px -18px rgba(0,0,0,.45), 0 1px 0 rgba(0,0,0,.04);
+}
+.user-btn:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(34,197,94,.20), 0 10px 30px -18px rgba(0,0,0,.45); }
+.user-btn .caret{ font-size:12px; opacity:.7; transition:transform .2s ease, opacity .2s ease; }
+.user-switch.open .user-btn .caret{ transform:rotate(180deg); opacity:1; }
+
+/* переиспользуем твою стилизацию .user */
+.user-inline{ display:flex; align-items:center; gap:10px; }
+.user-inline .who{ display:flex; flex-direction:column; line-height:1.1; text-align:right; }
+.user-inline .name{ font-size:14px; font-weight:600; }
+.user-inline .role{ font-size:12px; color:#475569; }
+.user-inline .avatar{
+  width:34px; height:34px; border-radius:50%;
+  background:#e5f6ec; color:#1e824f; display:grid; place-items:center; font-weight:700;
+}
+
+/* меню */
+.user-menu{
+  position:absolute; right:0; top:calc(100% + 8px); z-index:1000;
+  display:none; min-width:220px; background:#fff;
+  border:1px solid #e5e7eb; border-radius:12px;
+  box-shadow:0 24px 60px rgba(2,6,23,.22); overflow:hidden;
+  transform-origin:top right; transform:scale(.98); opacity:0;
+  transition:transform .16s ease, opacity .16s ease;
+}
+.user-switch.open .user-menu{ display:block; transform:scale(1); opacity:1; }
+
+.user-menu .menu-item,
+.user-menu form button{
+  width:100%; display:flex; align-items:center; gap:10px;
+  padding:10px 12px; background:none; border:0; text-align:left;
+  font:inherit; color:#111827; text-decoration:none; cursor:pointer;
+}
+.user-menu .menu-item:hover,
+.user-menu form button:hover{ background:#f3f4f6; }
+.user-menu .danger{ color:#b91c1c; }
+.user-menu .danger:hover{ background:#fee2e2; }
+
+.overlay--confirm{ z-index:1100; }
+.modal-confirm{ width:min(420px,94vw); border-radius:12px; }
+
 
 </style>
 </head>
@@ -189,13 +236,29 @@
 </div>
 
 
-      <div class="user">
-        <div class="who">
-          <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
-          <span class="role">{{ _('Супер админ') if user and user['role']=='admin' else _('Администратор') }}</span>
-        </div>
-        <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
+      <div class="user-switch" id="userSwitch" style="margin-left:8px;">
+  <button class="user-btn" type="button" aria-haspopup="true" aria-expanded="false">
+    <div class="user-inline">
+      <div class="who">
+        <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
+        <span class="role">
+          {{ _('Супер админ') if user and user['role']=='admin' else _('Администратор') }}
+        </span>
       </div>
+      <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
+    </div>
+    <span class="caret">▾</span>
+  </button>
+
+  <div class="user-menu" role="menu" aria-label="{{ _('Меню пользователя') }}">
+    <a class="menu-item" href="{{ url_for('main.profile', user_id=session['user_id']) }}">👤 {{ _('Профиль участника') }}</a>
+    <form action="{{ url_for('auth.logout') }}" method="post">
+      {# <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> #}
+      <button type="submit" class="danger">🚪 {{ _('Выйти') }}</button>
+    </form>
+  </div>
+</div>
+
     </header>
 
     <main class="content">
@@ -226,30 +289,23 @@
 
             <div class="table">
               <div class="header">
-                <div>{{ _('Дата') }}</div>
-                <div>{{ _('ФИО') }}</div>
-                <div class="right">{{ _('Статус / Действия') }}</div>
-              </div>
+  <div>{{ _('Дата') }}</div>
+  <div>{{ _('ФИО') }}</div>
+  <div class="right">{{ _('Статус / Действия') }}</div>
+</div>
 
-              {% set d = (it['created_at'][:10] if it['created_at'] else '') %}
-              {% if d %}
-                {% set parts = d.split('-') %}
-                {% set ddmmyy = parts[2] ~ '.' ~ parts[1] ~ '.' ~ parts[0][2:] %}
-              {% else %}
-                {% set ddmmyy = '-' %}
-              {% endif %}
+<div class="row">
+  <div class="muted">{{ it['created_at'].strftime('%d.%m.%y') if it['created_at'] else '-' }}</div>
+  <div>{{ it['full_name'] or '—' }}</div>
+  <div class="right">
+    {% if it['commission_status'] %}
+      {% set ok = (it['commission_status']|lower).startswith('одобр') %}
+      <span class="chip chip--status chip-status {{ 'ok' if ok else 'bad' }}">{{ it['commission_status'] }}</span>
+    {% endif %}
+    <button class="btn details-btn" type="button" data-id="{{ it['id'] }}">{{ _('Детали') }}</button>
+  </div>
+</div>
 
-              <div class="row">
-                <div class="muted">{{ ddmmyy }}</div>
-                <div>{{ it['full_name'] or '—' }}</div>
-                <div class="right">
-                  {% if it['commission_status'] %}
-                    {% set ok = (it['commission_status']|lower).startswith('одобр') %}
-                    <span class="chip chip--status chip-status {{ 'ok' if ok else 'bad' }}">{{ it['commission_status'] }}</span>
-                  {% endif %}
-                  <button class="btn details-btn" type="button" data-id="{{ it['id'] }}">{{ _('Детали') }}</button>
-                </div>
-              </div>
             </div>
           </div>
         {% endfor %}
@@ -341,17 +397,39 @@
         <button class="btn-primary" type="button" id="nextStepBtn">{{ _('Продолжить') }}</button>
       </div>
       <div class="decision">
-        <input id="decisionReason" class="reason-input" placeholder="{{ _('Причина (обязательно для отклонения)') }}">
-        <button class="btn-ghost" type="button" id="approveBtn">✅ {{ _('Одобрить') }}</button>
-        <button class="btn-danger" type="button" id="rejectBtn">⛔ {{ _('Отклонить') }}</button>
-      </div>
+  <input id="decisionReason" class="reason-input" placeholder="{{ _('Причина (обязательно для отклонения)') }}">
+  <button class="btn-ghost" type="button" id="approveBtn">✅ {{ _('Одобрить') }}</button>
+  <button class="btn-danger" type="button" id="rejectBtn">⛔ {{ _('Отклонить') }}</button>
+  <span id="decisionLockNote" class="muted" hidden></span>
+</div>
+    </div>
+  </div>
+</div>
+<!-- CONFIRM (универсальная) -->
+<div id="confirmOverlay" class="overlay overlay--confirm" aria-hidden="true">
+  <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="cTitle">
+    <div class="m-head">
+      <div class="m-title" id="cTitle">{{ _('Подтвердите действие') }}</div>
+      <button class="m-close" type="button" data-close-confirm>×</button>
+    </div>
+    <div class="content-modal" style="padding:16px">
+      <p id="confirmText" style="margin:0"></p>
+    </div>
+    <div class="row-end" style="justify-content:flex-end">
+      <button class="btn-ghost" type="button" id="confirmNo">{{ _('Отмена') }}</button>
+      <button class="btn-primary" type="button" id="confirmYes">{{ _('Да') }}</button>
     </div>
   </div>
 </div>
 
+
 <script>
+  const approveBtn = document.getElementById('approveBtn');
+  const rejectBtn = document.getElementById('rejectBtn');
+  const reasonInput = document.getElementById('decisionReason');
+  const DECIDE_URL_TPL = "{{ url_for('admin.admin_decide', app_id='__ID__') }}";
 (function(){
-  const decideUrlTpl = "{{ url_for('admin.admin_decide', app_id='__ID__') }}";
+
   const overlay = document.getElementById('detailsOverlay');
   const closeBtns = overlay.querySelectorAll('[data-close]');
   const panes = [...overlay.querySelectorAll('.pane')];
@@ -359,9 +437,7 @@
 
   const prevBtn = document.getElementById('prevStepBtn');
   const nextBtn = document.getElementById('nextStepBtn');
-  const approveBtn = document.getElementById('approveBtn');
-  const rejectBtn = document.getElementById('rejectBtn');
-  const reasonInput = document.getElementById('decisionReason');
+
 
   const TXT_DONE = "{{ _('Готово') }}";
   const TXT_NEXT = "{{ _('Продолжить') }}";
@@ -584,6 +660,74 @@ if (t || j.test_score != null) {
   // testFields.test_time_spent = (t && t.time_spent)  ?? j.test_time_spent ?? null;
   // testFields.test_answers    = (t && t.answers)     ?? j.test_answers    ?? null;
 }
+
+// >>> ВСТАВЬ ЗДЕСЬ едиственную decide(status) <<<
+  async function decide(status){
+    if (!currentAppId) return;
+
+    // локальная защита от дабл-кликов
+    if (approveBtn.disabled && rejectBtn.disabled) return;
+
+    const reason = (reasonInput.value || '').trim();
+    if (status === 'rejected' && !reason){
+      alert(TXT_ERR.need_reason);
+      return;
+    }
+
+    // временно блокируем, пока ждём ответ
+    approveBtn.disabled = true;
+    rejectBtn.disabled  = true;
+
+    try{
+      const url = DECIDE_URL_TPL.replace('__ID__', currentAppId);
+      const r = await fetch(url, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ status, reason })
+      });
+      const j = await r.json();
+
+      if (!r.ok || !j.ok){
+        if (j.error === 'already_decided'){
+          lockDecisionUI(true, j.status || '');
+          alert('{{ _("Решение по этой заявке уже принято.") }}');
+          return;
+        }
+        alert(j.error === 'need_reason' ? TXT_ERR.need_reason :
+              j.error === 'bad_status' ? TXT_ERR.bad_status : TXT_ERR.net);
+        approveBtn.disabled = false;
+        rejectBtn.disabled  = false;
+        return;
+      }
+
+      // Обновляем чип в общем списке
+      const rowBtn = document.querySelector(`.details-btn[data-id="${currentAppId}"]`);
+      if (rowBtn){
+        const right = rowBtn.closest('.right');
+        let chip = right.querySelector('.chip-status');
+        if (!chip){
+          chip = document.createElement('span');
+          chip.className = 'chip chip--status chip-status';
+          right.insertBefore(chip, rowBtn);
+        }
+        chip.textContent = j.status;
+        chip.classList.toggle('ok',  j.status === L_OK);
+        chip.classList.toggle('bad', j.status === L_BAD);
+      }
+
+      lockDecisionUI(true, j.status || '');
+      closeModal();
+
+    } catch(e){
+      alert(TXT_ERR.net);
+      approveBtn.disabled = false;
+      rejectBtn.disabled  = false;
+    }
+  }
+
+  // Сделаем доступной глобально для обработчика подтверждения
+  window.decide = decide;
+
 // Ссылка на видео/результат — берём из j.test.link или j.test_link
 const link =
   (t && (t.link || t.video_link)) ??
@@ -600,34 +744,7 @@ if (passed === true && link) {
 // Сливаем форму + (возможные) тестовые поля и рендерим
 const f2 = { ...f, ...testFields };
 fillKvList(f2, { id:j.id, email:j.email, full_name:j.full_name, created_at:j.created_at });
-
-  }
-
-  async function decide(status){
-    if(!currentAppId) return;
-    const reason = (reasonInput.value || '').trim();
-    if(status === 'rejected' && !reason){ alert(TXT_ERR.need_reason); return; }
-    try{
-      const url = decideUrlTpl.replace('__ID__', currentAppId);
-      const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status, reason}) });
-      const j = await r.json();
-      if(!r.ok || !j.ok){
-        alert(j.error === 'need_reason' ? TXT_ERR.need_reason :
-              j.error === 'bad_status' ? TXT_ERR.bad_status : TXT_ERR.net);
-        return;
-      }
-      // обновить чип в рядке
-      const rowBtn = document.querySelector(`.details-btn[data-id="${currentAppId}"]`);
-      if(rowBtn){
-        const right = rowBtn.closest('.right');
-        let chip = right.querySelector('.chip-status');
-        if(!chip){ chip = document.createElement('span'); chip.className = 'chip chip--status chip-status'; right.insertBefore(chip, rowBtn); }
-        chip.textContent = j.status;
-        chip.classList.toggle('ok', j.status === L_OK);
-        chip.classList.toggle('bad', j.status === L_BAD);
-      }
-      closeModal();
-    }catch(e){ alert(TXT_ERR.net); }
+applyDecisionLockFromPayload(j);
   }
 
   document.querySelectorAll('.details-btn').forEach(btn=>{
@@ -637,8 +754,6 @@ fillKvList(f2, { id:j.id, email:j.email, full_name:j.full_name, created_at:j.cre
       openModal(appId);
     });
   });
-  approveBtn.addEventListener('click', ()=>decide('approved'));
-  rejectBtn.addEventListener('click', ()=>decide('rejected'));
 })();
 
 // vh fix
@@ -651,6 +766,104 @@ fillKvList(f2, { id:j.id, email:j.email, full_name:j.full_name, created_at:j.cre
   btn.addEventListener('click', (e)=>{ e.stopPropagation(); sw.classList.toggle('open'); btn.setAttribute('aria-expanded', sw.classList.contains('open')); });
   document.addEventListener('click', ()=> sw.classList.remove('open'));
 })();
+  (function(){
+  const sw = document.getElementById('userSwitch');
+  if(!sw) return;
+  const btn = sw.querySelector('.user-btn');
+  function close(){ sw.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const open = sw.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
+})();
+
+   /* ===== Подтверждение + блокировка повторного решения ===== */
+
+// Модалка подтверждения
+const confirmBox      = document.getElementById('confirmOverlay');
+const confirmText     = document.getElementById('confirmText');
+const confirmYes      = document.getElementById('confirmYes');
+const confirmNo       = document.getElementById('confirmNo');
+const confirmCloseBtn = confirmBox ? confirmBox.querySelector('[data-close-confirm]') : null;
+
+
+// Заметка-локер и сами элементы управления решением
+const lockNote = document.getElementById('decisionLockNote');
+
+let pendingAction = null; // 'approved' | 'rejected'
+
+function openConfirm(action){
+  // Для отклонения обязательно требуем причину до подтверждения
+  if (action === 'rejected') {
+    const reason = (reasonInput.value || '').trim();
+    if (!reason) {
+      alert("{{ _('Укажите причину отклонения') }}");
+      reasonInput.focus();
+      return;
+    }
+  }
+
+  pendingAction = action;
+
+  if (action === 'approved') {
+    confirmText.textContent = "{{ _('Вы уверены, что хотите одобрить эту заявку?') }}";
+    confirmYes.textContent  = "{{ _('Одобрить') }}";
+    confirmYes.classList.remove('btn-danger');
+    confirmYes.classList.add('btn-primary');
+  } else {
+    confirmText.textContent = "{{ _('Вы уверены, что хотите отклонить эту заявку?') }}";
+    confirmYes.textContent  = "{{ _('Отклонить') }}";
+    confirmYes.classList.remove('btn-primary');
+    confirmYes.classList.add('btn-danger');
+  }
+
+  confirmBox.classList.add('open');
+}
+function closeConfirm(){
+  confirmBox.classList.remove('open');
+  pendingAction = null;
+}
+
+// Удобная блокировка UI, когда решение уже принято
+function lockDecisionUI(decided, statusText){
+  approveBtn.disabled  = !!decided;
+  rejectBtn.disabled   = !!decided;
+  reasonInput.disabled = !!decided;
+
+  lockNote.hidden = !decided;
+  lockNote.textContent = decided ? ('{{ _("Решение уже принято:") }} ' + (statusText || '')) : '';
+}
+
+// Хуки на кнопки
+approveBtn.addEventListener('click', ()=>{
+  if (approveBtn.disabled) return;
+  openConfirm('approved');
+});
+rejectBtn.addEventListener('click', ()=>{
+  if (rejectBtn.disabled) return;
+  openConfirm('rejected');
+});
+
+// Подтверждение диалога
+confirmYes.addEventListener('click', ()=>{
+  const act = pendingAction;
+  closeConfirm();
+  if (act) decide(act);
+});
+confirmNo.addEventListener('click', closeConfirm);
+confirmCloseBtn.addEventListener('click', closeConfirm);
+
+// Вызови это после загрузки деталей (в конце loadDetails)
+function applyDecisionLockFromPayload(j){
+  // поддерживаем оба ключа (если ты уже переименовал на бэке — будет j.status)
+  const statusText = j.status || j.commission_status || '';
+  lockDecisionUI(!!statusText, statusText);
+}
+
+
 </script>
 
 </body>

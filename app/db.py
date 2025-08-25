@@ -1,147 +1,305 @@
-# app/db.py  — SQLite версия
-import sqlite3, json, uuid
+# app/db.py — PostgreSQL (psycopg3) + пул подключений
+from __future__ import annotations
+
+import os
+import uuid
 from datetime import datetime, timezone
-from flask import current_app
+from typing import Optional, List, Dict, Any
 
-def _db_path():
-    return current_app.config["DB_PATH"]
+import psycopg
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
-# ---------- Инициализация ----------
+try:
+    # current_app доступен только внутри контекста Flask
+    from flask import current_app
+except Exception:  # на случай запуска утилит вне Flask
+    current_app = None  # type: ignore
 
-def init_db():
-    with sqlite3.connect(_db_path()) as conn:
-        c = conn.cursor()
+
+# ---------- Глобальные объекты пула/DSN ----------
+
+_pool: Optional[ConnectionPool] = None
+_dsn_cache: Optional[str] = None
+
+
+# ---------- DSN и соединения ----------
+
+def _resolve_dsn(app=None) -> str:
+    """
+    Приоритет источников DSN:
+      1) app.config["DB_DSN"] или app.config["DATABASE_URL"] (если app передан)
+      2) current_app.config["DB_DSN"] / ["DATABASE_URL"] (если есть контекст)
+      3) переменные окружения DB_DSN / DATABASE_URL
+    Формат DSN: postgresql://user:pass@host:5432/dbname
+    """
+    # 1) из явно переданного app
+    if app is not None:
+        d = app.config.get("DB_DSN") or app.config.get("DATABASE_URL")
+        if d:
+            return d
+
+    # 2) из текущего Flask-приложения
+    try:
+        if current_app:  # type: ignore
+            d = current_app.config.get("DB_DSN") or current_app.config.get("DATABASE_URL")
+            if d:
+                return d
+    except Exception:
+        pass
+
+    # 3) из окружения
+    d = os.getenv("DB_DSN") or os.getenv("DATABASE_URL")
+    if d:
+        return d
+
+    raise RuntimeError("DSN не задан. Установи DB_DSN или DATABASE_URL.")
+
+
+def init_pool(app=None) -> None:
+    """
+    Инициализирует пул подключений. Вызывается из create_app().
+    """
+    global _pool, _dsn_cache
+    if _pool is not None:
+        return
+    dsn = _resolve_dsn(app)
+    _dsn_cache = dsn
+    _pool = ConnectionPool(
+        conninfo=dsn,
+        min_size=int(os.getenv("PG_MIN_POOL", "1")),
+        max_size=int(os.getenv("PG_MAX_POOL", "10")),
+        kwargs={"row_factory": dict_row},
+    )
+
+
+def get_conn():
+    """
+    Возвращает подключение к БД.
+      - если пул инициализирован → pooled connection (context manager)
+      - иначе одиночное соединение (fallback)
+    Пример:
+        with get_conn() as conn, conn.cursor() as c:
+            c.execute("SELECT 1")
+    """
+    if _pool is not None:
+        return _pool.connection()
+
+    dsn = _dsn_cache or _resolve_dsn()
+    return psycopg.connect(dsn, row_factory=dict_row)
+
+
+# ---------- Инициализация схемы ----------
+
+def bootstrap_schema() -> None:
+    """
+    Создаёт недостающие таблицы/колонки/индексы. Идемпотентно.
+    Типы полей оставлены максимально близкими к SQLite-версии:
+      - JSON-поля как TEXT (строки), чтобы не ломать json.loads(...) в существующих роутерах.
+      - время — TIMESTAMPTZ.
+    """
+    with get_conn() as conn, conn.cursor() as c:
         # users
         c.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
-            email TEXT,
+            email TEXT UNIQUE,
             full_name TEXT,
-            form_data TEXT,
+            form_data TEXT,                -- JSON-строка (как было)
             commission_comment TEXT,
             commission_status TEXT,
             test_score INTEGER,
-            test_answers TEXT
+            test_answers TEXT,             -- JSON-строка
+            password_hash TEXT,
+            is_verified BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            role TEXT DEFAULT 'user'
         )
         """)
-        c.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (LOWER(email))")
 
-        # applications (+ сразу test_link)
+        # applications
         c.execute("""
         CREATE TABLE IF NOT EXISTS applications (
             id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            form_data TEXT,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            form_data TEXT,                -- JSON-строка
             commission_comment TEXT,
             commission_status TEXT,
             test_score INTEGER,
-            test_answers TEXT,
-            created_at TEXT
+            test_answers TEXT,             -- JSON-строка
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            test_link TEXT
         )
         """)
-        c.execute("CREATE INDEX IF NOT EXISTS idx_app_user ON applications(user_id)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_app_created ON applications(created_at)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_app_user ON applications (user_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_app_created ON applications (created_at DESC)")
+
+        # tests
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS tests (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            duration_minutes INTEGER,
+            questions TEXT,                -- JSON-строка
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            is_published BOOLEAN NOT NULL DEFAULT FALSE
+        )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_tests_created ON tests (created_at DESC)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_tests_published ON tests (is_published)")
+
+        # test_attempts
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS test_attempts (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            test_id TEXT NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+            started_at TIMESTAMPTZ,
+            finished_at TIMESTAMPTZ,
+            score INTEGER,
+            answers TEXT                   -- JSON-строка
+        )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_user ON test_attempts (user_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_test ON test_attempts (test_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_finished ON test_attempts (finished_at DESC)")
+
+        # password_resets
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token TEXT NOT NULL UNIQUE,
+            expires_at TIMESTAMPTZ NOT NULL,
+            used BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_pr_user ON password_resets (user_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_pr_expires ON password_resets (expires_at)")
+
+        # На случай устаревших схем — гарантируем наличие новых колонок
+        c.execute("ALTER TABLE tests        ADD COLUMN IF NOT EXISTS is_published BOOLEAN NOT NULL DEFAULT FALSE")
+        c.execute("ALTER TABLE applications ADD COLUMN IF NOT EXISTS test_link TEXT")
+        c.execute("ALTER TABLE users        ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user'")
+        c.execute("ALTER TABLE users        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()")
+        c.execute("ALTER TABLE users        ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT TRUE")
+        c.execute("ALTER TABLE users        ADD COLUMN IF NOT EXISTS password_hash TEXT")
+        c.execute("ALTER TABLE users        ADD COLUMN IF NOT EXISTS form_data TEXT")
+        c.execute("ALTER TABLE users        ADD COLUMN IF NOT EXISTS test_answers TEXT")
 
         conn.commit()
 
-    # добиваемся наличия нужных колонок
-    ensure_user_columns()
-    ensure_applications_columns()
-    ensure_tests_tables()
-    ensure_password_resets_table()
-    ensure_users_index_email()
 
-def ensure_user_columns():
-    with sqlite3.connect(_db_path()) as conn:
-        c = conn.cursor()
-        c.execute("PRAGMA table_info(users)")
-        cols = {row[1] for row in c.fetchall()}
-        to_add = []
-        if 'password_hash' not in cols:
-            to_add.append("ALTER TABLE users ADD COLUMN password_hash TEXT")
-        if 'is_verified' not in cols:
-            to_add.append("ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 1")
-        if 'created_at' not in cols:
-            to_add.append("ALTER TABLE users ADD COLUMN created_at TEXT")
-        if 'role' not in cols:
-            to_add.append("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
-        for sql in to_add:
-            c.execute(sql)
+# Совместимость со старым кодом: init_db() вызывает bootstrap_schema()
+def init_db() -> None:
+    bootstrap_schema()
+
+
+# ---------- ensure_* (оставлены для совместимости) ----------
+
+def ensure_user_columns() -> None:
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT TRUE")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()")
+        c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user'")
         conn.commit()
 
-def ensure_users_index_email():
-    with sqlite3.connect(_db_path()) as conn:
-        c = conn.cursor()
-        c.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+
+def ensure_users_index_email() -> None:
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users (LOWER(email))")
         conn.commit()
 
-def ensure_applications_table():
-    # оставлено для совместимости — всё делает init_db()
+
+def ensure_applications_table() -> None:
+    # для совместимости со старым вызовом
     init_db()
 
-def ensure_applications_columns():
-    """Добавляет недостающие колонки в applications."""
-    with sqlite3.connect(_db_path()) as conn:
-        c = conn.cursor()
-        c.execute("PRAGMA table_info(applications)")
-        cols = {row[1] for row in c.fetchall()}
-        to_add = []
-        if 'test_link' not in cols:
-            to_add.append("ALTER TABLE applications ADD COLUMN test_link TEXT")
-        # если нужен флаг прохождения — раскомментируй
-        # if 'test_passed' not in cols:
-        #     to_add.append("ALTER TABLE applications ADD COLUMN test_passed INTEGER DEFAULT 0")
-        for sql in to_add:
-            c.execute(sql)
+
+def ensure_applications_columns() -> None:
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("ALTER TABLE applications ADD COLUMN IF NOT EXISTS test_link TEXT")
         conn.commit()
 
+
+def ensure_tests_tables() -> None:
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("ALTER TABLE tests ADD COLUMN IF NOT EXISTS is_published BOOLEAN NOT NULL DEFAULT FALSE")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_tests_created ON tests (created_at DESC)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_tests_published ON tests (is_published)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_user ON test_attempts (user_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_test ON test_attempts (test_id)")
+        conn.commit()
+
+
+def ensure_password_resets_table() -> None:
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("CREATE INDEX IF NOT EXISTS idx_pr_user ON password_resets (user_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_pr_expires ON password_resets (expires_at)")
+        conn.commit()
+
+
+# ---------- Утилиты для кода приложения ----------
+
 def get_user_by_email(email: str):
-    with sqlite3.connect(_db_path()) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE email=?", ((email or '').strip().lower(),))
+    """
+    Ищет пользователя по e-mail (case-insensitive). Возвращает dict или None.
+    """
+    e = (email or "").strip()
+    if not e:
+        return None
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(%s)", (e,))
         return c.fetchone()
 
+
 def user_has_application(user_id: str) -> bool:
-    with sqlite3.connect(_db_path()) as conn:
-        c = conn.cursor()
-        c.execute("SELECT 1 FROM applications WHERE user_id=? LIMIT 1", (user_id,))
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT 1 FROM applications WHERE user_id = %s LIMIT 1", (user_id,))
         return c.fetchone() is not None
 
+
 def get_user_applications(user_id: str):
-    with sqlite3.connect(_db_path()) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+    """
+    Возвращает список заявок пользователя (list[dict]).
+    """
+    with get_conn() as conn, conn.cursor() as c:
         c.execute("""
             SELECT id, user_id, form_data, commission_comment, commission_status,
                    test_score, test_answers, created_at, test_link
-            FROM applications
-            WHERE user_id=?
-            ORDER BY created_at DESC
+              FROM applications
+             WHERE user_id = %s
+             ORDER BY created_at DESC NULLS LAST
         """, (user_id,))
         return c.fetchall()
 
-def migrate_users_formdata_to_applications():
-    """Разовая миграция users.form_data -> applications."""
-    with sqlite3.connect(_db_path()) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+
+def migrate_users_formdata_to_applications() -> None:
+    """
+    Разовая миграция users.form_data -> applications.
+    Создаёт одну заявку, если у пользователя ещё нет.
+    """
+    with get_conn() as conn, conn.cursor() as c:
         c.execute("""
           SELECT id AS user_id, form_data, commission_comment, commission_status,
                  test_score, test_answers, created_at
-          FROM users
-          WHERE form_data IS NOT NULL
+            FROM users
+           WHERE form_data IS NOT NULL
         """)
-        rows = c.fetchall()
+        rows = c.fetchall() or []
         for r in rows:
-            c.execute("SELECT 1 FROM applications WHERE user_id=? LIMIT 1", (r["user_id"],))
+            c.execute("SELECT 1 FROM applications WHERE user_id = %s LIMIT 1", (r["user_id"],))
             if c.fetchone():
                 continue
             c.execute("""
-              INSERT OR IGNORE INTO applications
-              (id, user_id, form_data, commission_comment, commission_status,
-               test_score, test_answers, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              INSERT INTO applications
+                (id, user_id, form_data, commission_comment, commission_status,
+                 test_score, test_answers, created_at)
+              VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 str(uuid.uuid4()),
                 r["user_id"],
@@ -150,58 +308,15 @@ def migrate_users_formdata_to_applications():
                 r["commission_status"],
                 r["test_score"],
                 r["test_answers"],
-                r["created_at"]
+                r["created_at"],   # если была строка-ISO — Postgres сам попробует распарсить
             ))
         conn.commit()
 
-def ensure_tests_tables():
-    with sqlite3.connect(_db_path()) as conn:
-        c = conn.cursor()
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS tests (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            description TEXT,
-            duration_minutes INTEGER,
-            questions TEXT,
-            created_at TEXT
-        )
-        """)
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS test_attempts (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            test_id TEXT NOT NULL,
-            started_at TEXT,
-            finished_at TEXT,
-            score INTEGER,
-            answers TEXT
-        )
-        """)
-        c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_user ON test_attempts(user_id)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_test ON test_attempts(test_id)")
-        conn.commit()
 
-def ensure_password_resets_table():
-    with sqlite3.connect(_db_path()) as conn:
-        c = conn.cursor()
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS password_resets (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            token TEXT NOT NULL UNIQUE,
-            expires_at TEXT NOT NULL,
-            used INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
-        c.execute("CREATE INDEX IF NOT EXISTS idx_pr_user ON password_resets(user_id)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_pr_expires ON password_resets(expires_at)")
-        conn.commit()
-
-def prune_password_resets():
-    now_iso = datetime.now(timezone.utc).isoformat()
-    with sqlite3.connect(_db_path()) as conn:
-        c = conn.cursor()
-        c.execute("DELETE FROM password_resets WHERE used=1 OR expires_at < ?", (now_iso,))
+def prune_password_resets() -> None:
+    """
+    Удаляет использованные и просроченные токены сброса пароля.
+    """
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("DELETE FROM password_resets WHERE used = TRUE OR expires_at < NOW()")
         conn.commit()

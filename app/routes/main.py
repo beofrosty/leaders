@@ -1,13 +1,18 @@
 # app/routes/main.py
 import re
-import sqlite3, uuid, json
-from datetime import datetime
-from os import abort
+import uuid
+import json
+from datetime import datetime, timezone
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, abort
+from flask import (
+    Blueprint, render_template, request, redirect,
+    url_for, session, flash, current_app, jsonify, abort
+)
 from ..decorators import login_required
-from ..db import get_user_by_email
+from ..db import get_user_by_email, get_conn
 from flask_babel import gettext as _
+import psycopg
+from psycopg.errors import UniqueViolation
 
 bp = Blueprint('main', __name__)
 
@@ -17,21 +22,22 @@ def index():
     if 'user_email' not in session:
         return redirect(url_for('auth.login'))
 
-    DB = current_app.config['DB_PATH']
     u = get_user_by_email(session['user_email'])
     if not u:
         session.clear()
         return redirect(url_for('auth.login'))
 
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+    # === NEW: админ — сразу в админку ===
+    if (u.get('role') == 'admin'):
+        return redirect(url_for('admin.admin'))
+
+    with get_conn() as conn, conn.cursor() as c:
         # Все заявки пользователя (последние сверху)
         c.execute("""
           SELECT id, commission_status, commission_comment, created_at
-          FROM applications
-          WHERE user_id=?
-          ORDER BY datetime(created_at) DESC
+            FROM applications
+           WHERE user_id = %s
+           ORDER BY created_at DESC NULLS LAST
         """, (u['id'],))
         apps = c.fetchall()
 
@@ -44,8 +50,8 @@ def index():
 
     return render_template(
         'form.html',
-        submitted=submitted,                 # скрывать кнопку/модалку при наличии заявки
-        just_submitted=just_submitted,       # показать плашку один раз после отправки
+        submitted=submitted,
+        just_submitted=just_submitted,
         applications=apps,
         already_submitted=already_submitted,
         error=None
@@ -55,23 +61,25 @@ def index():
 @bp.route('/form', methods=['GET', 'POST'])
 @login_required
 def form():
-    DB = current_app.config['DB_PATH']
-
     u = get_user_by_email(session['user_email'])
     if not u:
         flash(('error', _('Пользователь не найден.')))
         return redirect(url_for('auth.login'))
+
+    # GET — возвращаем на главную (или в админку для админа)
+    if request.method == 'GET':
+        if (u.get('role') == 'admin'):
+            return redirect(url_for('admin.admin'))
+        return redirect(url_for('main.index'))
 
     # GET — возвращаем на главную (чтобы форма всегда открывалась модалкой на /)
     if request.method == 'GET':
         return redirect(url_for('main.index'))
 
     # POST — создание заявки
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute("SELECT COUNT(*) FROM applications WHERE user_id=?", (u['id'],))
-        already_submitted = c.fetchone()[0] > 0
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("SELECT COUNT(*) AS cnt FROM applications WHERE user_id = %s", (u['id'],))
+        already_submitted = (c.fetchone()['cnt'] or 0) > 0
 
     if already_submitted:
         flash(('error', _('Вы уже отправили заявку. Повторная подача невозможна.')))
@@ -79,45 +87,50 @@ def form():
 
     data = request.form.to_dict()
     try:
-        with sqlite3.connect(DB) as conn:
-            conn.row_factory = sqlite3.Row
-            c = conn.cursor()
+        with get_conn() as conn, conn.cursor() as c:
             app_id = str(uuid.uuid4())
             c.execute("""
                 INSERT INTO applications (
                     id, user_id, form_data, commission_comment, commission_status,
-                    test_score, test_answers, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    test_score, test_answers, created_at, test_link
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
-                app_id, u['id'], json.dumps(data, ensure_ascii=False),
-                None, None, None, None, datetime.utcnow().isoformat()
+                app_id,
+                u['id'],
+                json.dumps(data, ensure_ascii=False),
+                None,  # commission_comment
+                None,  # commission_status
+                None,  # test_score
+                None,  # test_answers
+                datetime.now(timezone.utc),
+                None,  # test_link
             ))
             conn.commit()
         # PRG: на главную с флагом одноразовой плашки
         return redirect(url_for('main.index', submitted=1))
-    except sqlite3.IntegrityError:
+    except UniqueViolation:
         flash(('error', _('Заявка уже существует. Повторная подача невозможна.')))
+        return redirect(url_for('main.applications'))
+    except psycopg.Error:
+        flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
         return redirect(url_for('main.applications'))
 
 
 @bp.route('/profile/<user_id>')
 @login_required
 def profile(user_id):
-    DB = current_app.config['DB_PATH']
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+    with get_conn() as conn, conn.cursor() as c:
         # сам пользователь
-        c.execute("SELECT * FROM users WHERE id=?", (user_id,))
+        c.execute("SELECT * FROM users WHERE id = %s", (user_id,))
         user = c.fetchone()
 
         # последняя заявка пользователя
         c.execute("""
           SELECT id, form_data, test_answers, commission_status, commission_comment, created_at
-          FROM applications
-          WHERE user_id=?
-          ORDER BY datetime(created_at) DESC
-          LIMIT 1
+            FROM applications
+           WHERE user_id = %s
+           ORDER BY created_at DESC NULLS LAST
+           LIMIT 1
         """, (user_id,))
         last_app = c.fetchone()
 
@@ -159,15 +172,21 @@ def profile(user_id):
     )
 
 
+@bp.route('/profile', endpoint='profile_me')
+@login_required
+def profile_me():
+    return redirect(url_for('.profile', user_id=session['user_id']))
+
+
 @bp.route('/applications')
 @login_required
 def applications():
-    DB = current_app.config['DB_PATH']
     u = get_user_by_email(session['user_email'])
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
 
+    PASS_PCT = int(current_app.config.get('TEST_PASS_THRESHOLD_PCT', 60))
+    def ceil_pct(total, pct): return (total * pct + 99) // 100
+
+    with get_conn() as conn, conn.cursor() as c:
         # все заявки пользователя
         c.execute("""
           SELECT a.id,
@@ -177,25 +196,34 @@ def applications():
                  a.commission_comment,
                  a.created_at,
                  a.test_link
-          FROM applications a
-          JOIN users u ON u.id = a.user_id
-          WHERE a.user_id = ?
-          ORDER BY datetime(a.created_at) DESC
+            FROM applications a
+            JOIN users u ON u.id = a.user_id
+           WHERE a.user_id = %s
+           ORDER BY a.created_at DESC NULLS LAST
         """, (u['id'],))
         items = c.fetchall()
 
-        # последняя заявка
         latest = items[0] if items else None
 
-        # считаем "тест пройден" — есть завершённая попытка
+        # последняя попытка и проверка "пройдено"
         c.execute("""
-          SELECT 1
-          FROM test_attempts
-          WHERE user_id=? AND finished_at IS NOT NULL
-          ORDER BY datetime(finished_at) DESC
-          LIMIT 1
+          SELECT ta.score, t.questions
+            FROM test_attempts ta
+            JOIN tests t ON t.id = ta.test_id
+           WHERE ta.user_id = %s
+           ORDER BY ta.finished_at DESC NULLS LAST
+           LIMIT 1
         """, (u['id'],))
-        test_passed = c.fetchone() is not None
+        att = c.fetchone()
+
+    test_passed = False
+    if att:
+        try:
+            total = len(json.loads(att['questions'] or '[]'))
+        except Exception:
+            total = 0
+        min_score = ceil_pct(total, PASS_PCT) if total else None
+        test_passed = bool(att['score'] is not None and total and att['score'] >= min_score)
 
     return render_template(
         'applications.html',
@@ -206,26 +234,21 @@ def applications():
     )
 
 
-
-
 @bp.get('/api/my-application')
 @login_required
 def api_my_application():
     """Возвращает последний статус заявки текущего пользователя."""
-    DB = current_app.config['DB_PATH']
     u = get_user_by_email(session['user_email'])
     if not u:
         return jsonify(exists=False), 404
 
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+    with get_conn() as conn, conn.cursor() as c:
         c.execute("""
           SELECT id, commission_status, commission_comment, created_at
-          FROM applications
-          WHERE user_id=?
-          ORDER BY datetime(created_at) DESC
-          LIMIT 1
+            FROM applications
+           WHERE user_id = %s
+           ORDER BY created_at DESC NULLS LAST
+           LIMIT 1
         """, (u['id'],))
         row = c.fetchone()
 
@@ -237,8 +260,10 @@ def api_my_application():
         id=row['id'],
         status=row['commission_status'],
         comment=row['commission_comment'],
-        created_at=row['created_at']
+        created_at=row['created_at'].isoformat() if row['created_at'] else None,
     )
+
+
 @bp.post('/applications/<string:app_id>/test_link')
 @login_required
 def save_test_link(app_id):
@@ -255,12 +280,9 @@ def save_test_link(app_id):
         return jsonify(ok=False, error='unauth'), 401
 
     # 4) обновляем в БД, проверяя владельца заявки
-    DB = current_app.config['DB_PATH']
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+    with get_conn() as conn, conn.cursor() as c:
         app_row = c.execute(
-            "SELECT id, user_id FROM applications WHERE id=?",
+            "SELECT id, user_id FROM applications WHERE id = %s",
             (app_id,)
         ).fetchone()
         if not app_row:
@@ -268,7 +290,7 @@ def save_test_link(app_id):
         if app_row['user_id'] != u['id']:
             abort(403)
 
-        c.execute("UPDATE applications SET test_link=? WHERE id=?", (link, app_id))
+        c.execute("UPDATE applications SET test_link = %s WHERE id = %s", (link, app_id))
         conn.commit()
 
     # 5) ответ (AJAX или обычный POST)

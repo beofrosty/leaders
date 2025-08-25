@@ -1,29 +1,28 @@
-# Translations template for PROJECT.
-# Copyright (C) 2025 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
-#
-#, fuzzy
+
 msgid ""
 msgstr ""
-"Project-Id-Version: PROJECT VERSION\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"Project-Id-Version:  leaders\n"
+"Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-22 11:03+0600\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"PO-Revision-Date: 2025-08-12 00:00+0000\n"
+"Last-Translator: \n"
+"Language: ky\n"
+"Language-Team: Kyrgyz\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
+# ==== Флеш-сообщения (auth/main/admin) ====
 #: app/decorators.py:27
 msgid "Доступ только для администраторов"
-msgstr ""
+msgstr "Администраторлор үчүн гана"
 
 #: app/email_utils.py:32
+#, fuzzy
 msgid "Ваша заявка одобрена"
-msgstr ""
+msgstr "Өтүнмө жөнөтүлдү"
 
 #: app/email_utils.py:34
 #, python-format
@@ -35,8 +34,9 @@ msgid "Вы допущены на следующий этап конкурса."
 msgstr ""
 
 #: app/email_utils.py:40
+#, fuzzy
 msgid "Перейдите по ссылке, чтобы пройти тест:"
-msgstr ""
+msgstr "Тест тапшыруу үчүн почтадагы шилтеме аркылуу өтүңүз"
 
 #: app/email_utils.py:45
 msgid "Чтобы пройти тест, войдите в личный кабинет и откройте раздел «Тест»."
@@ -46,13 +46,16 @@ msgstr ""
 msgid "С уважением,"
 msgstr ""
 
+# ==== Базовые ====
 #: app/email_utils.py:47 app/email_utils.py:59
+#, fuzzy
 msgid "Оргкомитет «Лидеры года»"
-msgstr ""
+msgstr "Жылдын лидерлери"
 
 #: app/email_utils.py:53
+#, fuzzy
 msgid "Ваша заявка отклонена"
-msgstr ""
+msgstr "Өтүнмө жөнөтүлдү"
 
 #: app/email_utils.py:55
 #, python-format
@@ -67,19 +70,21 @@ msgstr ""
 msgid "Спасибо за участие."
 msgstr ""
 
+# ==== Навигация админки ====
 #: app/routes/admin.py:38 templates/admin_dashboard.html:5
 #: templates/admin_dashboard.html:205 templates/admin_dashboard.html:265
 #: templates/admin_tests.html:163
 msgid "Заявки"
-msgstr ""
+msgstr "Өтүнмөлөр"
 
 #: app/routes/admin.py:50
 msgid "Выберите корректный статус."
-msgstr ""
+msgstr "Статусту туура тандаңыз."
 
 #: app/routes/admin.py:61
+#, fuzzy
 msgid "Заявка не найдена."
-msgstr ""
+msgstr "Колдонуучу табылган жок."
 
 #: app/routes/admin.py:64
 #, python-format
@@ -92,107 +97,110 @@ msgstr ""
 
 #: app/routes/admin.py:88
 msgid "Статус обновлён и письмо отправлено."
-msgstr ""
+msgstr "Статус жаңыртылды жана кат жиберилди."
 
 #: app/routes/admin.py:122 templates/admin_dashboard.html:206
 #: templates/admin_tests.html:5 templates/admin_tests.html:164
 #: templates/admin_tests.html:222
 msgid "Тесты"
-msgstr ""
+msgstr "Тесттер"
 
 #: app/routes/admin.py:139 app/routes/admin.py:171
 msgid "Некорректный JSON вопросов."
-msgstr ""
+msgstr "Суроолордун JSON форматы туура эмес."
 
 #: app/routes/admin.py:143
 msgid "Название и вопросы обязательны."
-msgstr ""
+msgstr "Аталыш жана суроолор милдеттүү."
 
 #: app/routes/admin.py:155
 msgid "Тест создан."
-msgstr ""
+msgstr "Тест түзүлдү."
 
 #: app/routes/admin.py:181
 msgid "Тест обновлён."
-msgstr ""
+msgstr "Тест жаңыртылды."
 
 #: app/routes/admin.py:191 app/routes/tests.py:224
 msgid "Тест не найден."
-msgstr ""
+msgstr "Тест табылган жок."
 
 #: app/routes/admin.py:209
 msgid "Тест удалён."
-msgstr ""
+msgstr "Тест өчүрүлдү."
 
 #: app/routes/admin.py:250 templates/admin_dashboard.html:278
 #: templates/admin_dashboard.html:455 templates/admin_user_detail.html:62
 msgid "Одобрено"
-msgstr ""
+msgstr "Бекитилди"
 
 #: app/routes/admin.py:250 templates/admin_dashboard.html:279
 #: templates/admin_dashboard.html:456 templates/admin_user_detail.html:63
 msgid "Отклонено"
-msgstr ""
+msgstr "Четке кагылды"
 
 #: app/routes/admin.py:457
+#, fuzzy
 msgid "Статус теста обновлён"
-msgstr ""
+msgstr "Тест жаңыртылды."
 
 #: app/routes/auth.py:65
 msgid "Неверный код приглашения."
-msgstr ""
+msgstr "Чакыруу коду туура эмес."
 
 #: app/routes/auth.py:69
 msgid "Проверьте поля формы."
-msgstr ""
+msgstr "Форма талааларын текшериңиз."
 
 #: app/routes/auth.py:73 app/routes/auth.py:121
 msgid "Пользователь с таким e-mail уже есть."
-msgstr ""
+msgstr "Бул e-mail менен колдонуучу бар."
 
 #: app/routes/auth.py:91
 msgid "Администратор создан!"
-msgstr ""
+msgstr "Администратор түзүлдү!"
 
 #: app/routes/auth.py:109
 msgid "Заполните все поля."
-msgstr ""
+msgstr "Бардык талааларды толтуруңуз."
 
 #: app/routes/auth.py:112
 msgid "Некорректный e-mail."
-msgstr ""
+msgstr "E-mail туура эмес."
 
 #: app/routes/auth.py:115
+#, fuzzy
 msgid "Пароль должен быть не короче 12 символов."
-msgstr ""
+msgstr "Сырсөз кеминде 8 белгиден турушу керек."
 
 #: app/routes/auth.py:118 app/routes/auth.py:259
 msgid "Пароли не совпадают."
-msgstr ""
+msgstr "Сырсөздөр дал келбейт."
 
 #: app/routes/auth.py:139
 msgid "Регистрация успешна!"
-msgstr ""
+msgstr "Катталуу ийгиликтүү!"
 
 #: app/routes/auth.py:165
 msgid "Неверные e-mail или пароль."
-msgstr ""
+msgstr "E-mail же сырсөз туура эмес."
 
 #: app/routes/auth.py:168
 msgid "Аккаунт не подтверждён."
-msgstr ""
+msgstr "Аккаунт тастыкталган эмес."
 
 #: app/routes/auth.py:174
 msgid "Добро пожаловать!"
-msgstr ""
+msgstr "Кош келиңиз!"
 
 #: app/routes/auth.py:186
 msgid "Вы вышли из аккаунта."
-msgstr ""
+msgstr "Аккаунттан чыктыңыз."
 
 #: app/routes/auth.py:219
+#, fuzzy
 msgid "Сброс пароля"
-msgstr ""
+msgstr "Бардык талаалар"
 
 #: app/routes/auth.py:221
 #, python-format
@@ -218,8 +226,9 @@ msgid "Ссылка недействительна или устарела. За
 msgstr ""
 
 #: app/routes/auth.py:256
+#, fuzzy
 msgid "Пароль должен быть не менее 12 символов."
-msgstr ""
+msgstr "Сырсөз кеминде 8 белгиден турушу керек."
 
 #: app/routes/auth.py:267
 msgid "Пароль обновлён. Теперь вы можете войти."
@@ -231,109 +240,119 @@ msgstr ""
 
 #: app/routes/main.py:62
 msgid "Пользователь не найден."
-msgstr ""
+msgstr "Колдонуучу табылган жок."
 
 #: app/routes/main.py:77
 msgid "Вы уже отправили заявку. Повторная подача невозможна."
-msgstr ""
+msgstr "Өтүнмө мурда жөнөтүлгөн. Кайра тапшыруу мүмкүн эмес."
 
 #: app/routes/main.py:99
 msgid "Заявка уже существует. Повторная подача невозможна."
-msgstr ""
+msgstr "Мындай өтүнмө бар. Кайра тапшыруу мүмкүн эмес."
 
 #: app/routes/main.py:129 templates/admin_dashboard.html:293
 #: templates/admin_dashboard.html:347 templates/admin_dashboard.html:487
 #: templates/admin_register.html:14 templates/admin_user_detail.html:43
 #: templates/form.html:77 templates/profile.html:49 templates/register.html:9
 msgid "ФИО"
-msgstr ""
+msgstr "Толук аты-жөнү"
 
 #: app/routes/main.py:130 templates/admin_dashboard.html:349
 #: templates/admin_dashboard.html:489 templates/form.html:83
 msgid "Дата рождения"
-msgstr ""
+msgstr "Туулган күнү"
 
 #: app/routes/main.py:131 templates/admin_dashboard.html:488
 #: templates/form.html:80
 msgid "Занимаемая должность"
-msgstr ""
+msgstr "Ээлеген кызматы"
 
 #: app/routes/main.py:132 templates/admin_dashboard.html:351
 #: templates/form.html:89
 msgid "Контактные связи"
-msgstr ""
+msgstr "Байланыш маалыматтары"
 
 #: app/routes/main.py:133
+#, fuzzy
 msgid "Email"
-msgstr ""
+msgstr "E-mail"
 
 #: app/routes/main.py:134 templates/admin_dashboard.html:353
 #: templates/admin_dashboard.html:493 templates/form.html:95
 msgid "Адрес проживания"
-msgstr ""
+msgstr "Жашаган дареги"
 
 #: app/routes/main.py:135 templates/admin_dashboard.html:360
 #: templates/admin_dashboard.html:494 templates/form.html:104
 msgid "Учебное заведение"
-msgstr ""
+msgstr "Окуу жайы"
 
 #: app/routes/main.py:136 templates/admin_dashboard.html:362
 #: templates/admin_dashboard.html:496 templates/form.html:110
 msgid "Специальность/направление"
-msgstr ""
+msgstr "Адистиги/багыты"
 
 #: app/routes/main.py:137 templates/admin_dashboard.html:361
 #: templates/admin_dashboard.html:495 templates/form.html:107
 msgid "Год окончания"
-msgstr ""
+msgstr "Бүтүргөн жылы"
 
 #: app/routes/main.py:138 templates/admin_dashboard.html:497
 msgid "Опыт лидерства"
-msgstr ""
+msgstr "Лидерлик тажрыйба"
 
 #: app/routes/main.py:139
+#, fuzzy
 msgid "Навыки и качества лидера"
-msgstr ""
+msgstr "Лидердин көндүмдөрү"
 
 #: app/routes/main.py:140 templates/admin_dashboard.html:499
 msgid "Личные достижения"
-msgstr ""
+msgstr "Жеке жетишкендиктер"
 
 #: app/routes/main.py:141
+#, fuzzy
 msgid "Как вы мотивируете команду"
-msgstr ""
+msgstr "Команданы кантип шыктандырасыз"
 
 #: app/routes/main.py:142
+#, fuzzy
 msgid "Сложное решение в условиях неопределенности"
-msgstr ""
+msgstr "Белгисиздик шартында кыйын чечим"
 
 #: app/routes/main.py:143
+#, fuzzy
 msgid "Как справляетесь с конфликтами"
-msgstr ""
+msgstr "Кайчы пикирлерди кантип жөнгө саласыз?"
 
 #: app/routes/main.py:144
+#, fuzzy
 msgid "Цели на 3-5 лет"
-msgstr ""
+msgstr "3–5 жылдык максаттар"
 
 #: app/routes/main.py:145
+#, fuzzy
 msgid "Как конкурс поможет достичь целей"
-msgstr ""
+msgstr "Бул конкурс максаттарыңызга кантип жардам берет?"
 
 #: app/routes/main.py:146 templates/admin_dashboard.html:505
+#, fuzzy
 msgid "Что значит быть лидером"
-msgstr ""
+msgstr "Лидер болуу сиз үчүн эмнени билдирет?"
 
 #: app/routes/main.py:147
+#, fuzzy
 msgid "Почему решили участвовать"
-msgstr ""
+msgstr "Эмне үчүн катышууну чечтиңиз?"
 
 #: app/routes/main.py:148 templates/admin_dashboard.html:508
 msgid "Опыт участия в конкурсах"
-msgstr ""
+msgstr "Конкурстарга катышуу тажрыйбасы"
 
 #: app/routes/tests.py:41
+#, fuzzy
 msgid "Доступ к тестам появляется после одобрения вашей заявки."
-msgstr ""
+msgstr "Өтүнмөңүз бекитилгенден кийин тестке шилтеме чыгат"
 
 #: app/routes/tests.py:186
 msgid "Пока нет доступных тестов."
@@ -357,6 +376,7 @@ msgstr ""
 msgid "Пожалуйста, ответьте на все вопросы."
 msgstr ""
 
+# ==== Базовые ====
 #: templates/admin_dashboard.html:5 templates/admin_dashboard.html:202
 #: templates/admin_register.html:2 templates/admin_test_form.html:5
 #: templates/admin_tests.html:5 templates/admin_tests.html:160
@@ -366,7 +386,7 @@ msgstr ""
 #: templates/profile.html:5 templates/register.html:2 templates/requests.html:5
 #: templates/requests.html:13 templates/tests_select.html:2
 msgid "Лидеры года"
-msgstr ""
+msgstr "Жылдын лидерлери"
 
 #: templates/admin_dashboard.html:222
 msgid "Выбор языка"
@@ -374,34 +394,38 @@ msgstr ""
 
 #: templates/admin_dashboard.html:243 templates/admin_tests.html:199
 msgid "Админ"
-msgstr ""
+msgstr "Админ"
 
 #: templates/admin_dashboard.html:245 templates/admin_tests.html:201
 msgid "Супер админ"
-msgstr ""
+msgstr "Супер админ"
 
 #: templates/admin_dashboard.html:245 templates/admin_tests.html:201
 msgid "Администратор"
-msgstr ""
+msgstr "Администратор"
 
 #: templates/admin_dashboard.html:253 templates/admin_tests.html:209
 #: templates/base.html:348
 msgid "Меню пользователя"
 msgstr ""
 
+# ==== Профиль ====
 #: templates/admin_dashboard.html:254 templates/admin_tests.html:210
 #: templates/base.html:360 templates/profile.html:5 templates/profile.html:41
 msgid "Профиль участника"
-msgstr ""
+msgstr "Катышуучунун профили"
 
 #: templates/admin_dashboard.html:257 templates/admin_tests.html:213
 #: templates/base.html:368
+#, fuzzy
 msgid "Выйти"
-msgstr ""
+msgstr "Кирүү"
 
+# ==== Навигация админки ====
 #: templates/admin_dashboard.html:267
+#, fuzzy
 msgid "Все заявки"
-msgstr ""
+msgstr "Өтүнмөлөр"
 
 #: templates/admin_dashboard.html:271 templates/admin_dashboard.html:272
 msgid "Этап 2: Рассмотрение заявки"
@@ -416,8 +440,9 @@ msgid "Осуществляет проверку данных."
 msgstr ""
 
 #: templates/admin_dashboard.html:276
+#, fuzzy
 msgid "Принимает решение:"
-msgstr ""
+msgstr "Кыйын чечим"
 
 #: templates/admin_dashboard.html:278
 msgid "Допускается на 2-этап конкурса"
@@ -427,14 +452,16 @@ msgstr ""
 msgid "с указанием причины."
 msgstr ""
 
+# ==== Пользователь: мои заявки ====
 #: templates/admin_dashboard.html:288 templates/applications.html:64
 #: templates/requests.html:31
 msgid "Заявка №"
-msgstr ""
+msgstr "Өтүнмө №"
 
 #: templates/admin_dashboard.html:292
+#, fuzzy
 msgid "Дата"
-msgstr ""
+msgstr "Деталдар"
 
 #: templates/admin_dashboard.html:294
 msgid "Статус / Действия"
@@ -442,49 +469,51 @@ msgstr ""
 
 #: templates/admin_dashboard.html:313
 msgid "Детали"
-msgstr ""
+msgstr "Деталдар"
 
 #: templates/admin_dashboard.html:320 templates/admin_tests.html:269
 msgid "Данных нет"
-msgstr ""
+msgstr "Маалымат жок"
 
+# ==== Формы/анкета ====
 #: templates/admin_dashboard.html:330 templates/form.html:60
 msgid "Заявка"
-msgstr ""
+msgstr "Өтүнмө"
 
 #: templates/admin_dashboard.html:336 templates/form.html:66
 msgid "Личные данные"
-msgstr ""
+msgstr "Жеке маалыматтар"
 
 #: templates/admin_dashboard.html:337 templates/form.html:67
 msgid "Образование"
-msgstr ""
+msgstr "Билим"
 
 #: templates/admin_dashboard.html:338 templates/form.html:68
 msgid "Опыт и достижения"
-msgstr ""
+msgstr "Тажрыйба жана жетишкендиктер"
 
 #: templates/admin_dashboard.html:339 templates/form.html:69
 msgid "Дополнительно"
-msgstr ""
+msgstr "Кошумча"
 
 #: templates/admin_dashboard.html:340
 msgid "Все поля"
-msgstr ""
+msgstr "Бардык талаалар"
 
 #: templates/admin_dashboard.html:348
+#, fuzzy
 msgid "Занимающая должность"
-msgstr ""
+msgstr "Ээлеген кызматы"
 
 #: templates/admin_dashboard.html:350 templates/admin_dashboard.html:490
 #: templates/form.html:86
 msgid "Дата создания заявки"
-msgstr ""
+msgstr "Өтүнмө түзүлгөн күнү"
 
 #: templates/admin_dashboard.html:352 templates/admin_dashboard.html:492
 #: templates/form.html:92
 msgid "Электронная почта"
-msgstr ""
+msgstr "Электрондук почта"
 
 #: templates/admin_dashboard.html:369 templates/form.html:119
 msgid ""
@@ -503,8 +532,9 @@ msgid ""
 msgstr ""
 
 #: templates/admin_dashboard.html:372 templates/form.html:128
+#, fuzzy
 msgid "Как вы мотивируете команду к достижению целей?"
-msgstr ""
+msgstr "Команданы кантип шыктандырасыз"
 
 #: templates/admin_dashboard.html:379 templates/form.html:137
 msgid ""
@@ -513,8 +543,9 @@ msgid ""
 msgstr ""
 
 #: templates/admin_dashboard.html:380 templates/form.html:140
+#, fuzzy
 msgid "Как вы справляетесь с конфликтами в коллективе?"
-msgstr ""
+msgstr "Кайчы пикирлерди кантип жөнгө саласыз?"
 
 #: templates/admin_dashboard.html:381 templates/form.html:143
 msgid "Какие цели вы ставите перед собой в ближайшие 3-5 лет?"
@@ -525,12 +556,14 @@ msgid "Как участие в конкурсе лидеров может по�
 msgstr ""
 
 #: templates/admin_dashboard.html:383 templates/form.html:149
+#, fuzzy
 msgid "Что для вас означает быть лидером?"
-msgstr ""
+msgstr "Лидер болуу сиз үчүн эмнени билдирет?"
 
 #: templates/admin_dashboard.html:384 templates/form.html:152
+#, fuzzy
 msgid "Почему вы решили участвовать в этом конкурсе?"
-msgstr ""
+msgstr "Эмне үчүн катышууну чечтиңиз?"
 
 #: templates/admin_dashboard.html:385 templates/form.html:155
 msgid ""
@@ -551,25 +584,28 @@ msgid "Сворачивать длинные"
 msgstr ""
 
 #: templates/admin_dashboard.html:403
+#, fuzzy
 msgid "Назад"
-msgstr ""
+msgstr "Аталышы"
 
 #: templates/admin_dashboard.html:404 templates/admin_dashboard.html:449
 #: templates/form.html:167
 msgid "Продолжить"
-msgstr ""
+msgstr "Улантуу"
 
 #: templates/admin_dashboard.html:407
 msgid "Причина (обязательно для отклонения)"
 msgstr ""
 
 #: templates/admin_dashboard.html:408 templates/admin_dashboard.html:778
+#, fuzzy
 msgid "Одобрить"
-msgstr ""
+msgstr "Кошуу"
 
 #: templates/admin_dashboard.html:409 templates/admin_dashboard.html:783
+#, fuzzy
 msgid "Отклонить"
-msgstr ""
+msgstr "Четке кагылды"
 
 #: templates/admin_dashboard.html:419
 msgid "Подтвердите действие"
@@ -578,11 +614,12 @@ msgstr ""
 #: templates/admin_dashboard.html:426 templates/admin_test_form.html:57
 #: templates/admin_tests.html:307 templates/form.html:166
 msgid "Отмена"
-msgstr ""
+msgstr "Жокко чыгаруу"
 
 #: templates/admin_dashboard.html:427
+#, fuzzy
 msgid "Да"
-msgstr ""
+msgstr "Деталдар"
 
 #: templates/admin_dashboard.html:448
 msgid "Готово"
@@ -597,52 +634,56 @@ msgid "Укажите причину отклонения"
 msgstr ""
 
 #: templates/admin_dashboard.html:453
+#, fuzzy
 msgid "Некорректный статус"
-msgstr ""
+msgstr "Статусту туура тандаңыз."
 
 #: templates/admin_dashboard.html:491
 msgid "Контакты"
-msgstr ""
+msgstr "Байланыштар"
 
 #: templates/admin_dashboard.html:498
 msgid "Навыки лидера"
-msgstr ""
+msgstr "Лидердин көндүмдөрү"
 
 #: templates/admin_dashboard.html:500
 msgid "Как мотивируете команду"
-msgstr ""
+msgstr "Команданы кантип шыктандырасыз"
 
 #: templates/admin_dashboard.html:501
 msgid "Сложное решение"
-msgstr ""
+msgstr "Кыйын чечим"
 
 #: templates/admin_dashboard.html:502
 msgid "Конфликты"
-msgstr ""
+msgstr "Кайчы пикирлер"
 
 #: templates/admin_dashboard.html:503
 msgid "Цели на 3–5 лет"
-msgstr ""
+msgstr "3–5 жылдык максаттар"
 
 #: templates/admin_dashboard.html:504
 msgid "Как конкурс поможет"
-msgstr ""
+msgstr "Конкурс кантип жардам берет"
 
 #: templates/admin_dashboard.html:506
+#, fuzzy
 msgid "Что значит быть лидером (доп.)"
-msgstr ""
+msgstr "Лидер болуу сиз үчүн эмнени билдирет?"
 
 #: templates/admin_dashboard.html:507
+#, fuzzy
 msgid "Почему участвуете"
-msgstr ""
+msgstr "Эмне үчүн катышууну чечтиңиз?"
 
 #: templates/admin_dashboard.html:511
+#, fuzzy
 msgid "Статус теста"
-msgstr ""
+msgstr "Тест түзүү"
 
 #: templates/admin_dashboard.html:512 templates/admin_tests.html:289
 msgid "Название теста"
-msgstr ""
+msgstr "Тесттин аталышы"
 
 #: templates/admin_dashboard.html:513
 msgid "Баллы за тест"
@@ -661,40 +702,47 @@ msgid "Время (сек)"
 msgstr ""
 
 #: templates/admin_dashboard.html:517
+#, fuzzy
 msgid "Ответы на тест"
-msgstr ""
+msgstr "Тесттин шилтемеси"
 
 #: templates/admin_dashboard.html:518
+#, fuzzy
 msgid "Ссылка на видео"
-msgstr ""
+msgstr "Тесттин шилтемеси"
 
 #: templates/admin_dashboard.html:540
 msgid "Пусто"
 msgstr ""
 
 #: templates/admin_dashboard.html:552
+#, fuzzy
 msgid "Копировать"
-msgstr ""
+msgstr "Өзгөртүү"
 
 #: templates/admin_dashboard.html:555
+#, fuzzy
 msgid "Скопировано!"
-msgstr ""
+msgstr "Шилтеме көчүрүлдү"
 
 #: templates/admin_dashboard.html:559 templates/admin_dashboard.html:562
+#, fuzzy
 msgid "Развернуть"
-msgstr ""
+msgstr "Аяктоо"
 
 #: templates/admin_dashboard.html:559 templates/admin_dashboard.html:562
 msgid "Свернуть"
 msgstr ""
 
 #: templates/admin_dashboard.html:568 templates/applications.html:132
+#, fuzzy
 msgid "Открыть"
-msgstr ""
+msgstr "Жөнөтүү"
 
 #: templates/admin_dashboard.html:617
+#, fuzzy
 msgid "Не удалось загрузить детали"
-msgstr ""
+msgstr "Тестти жүктөө мүмкүн болгон жок"
 
 #: templates/admin_dashboard.html:661
 msgid "Пройден"
@@ -721,103 +769,114 @@ msgid "Решение по этой заявке уже принято."
 msgstr ""
 
 #: templates/admin_register.html:2 templates/admin_register.html:7
+#, fuzzy
 msgid "Регистрация администратора"
-msgstr ""
+msgstr "Администратор"
 
 #: templates/admin_register.html:10
+#, fuzzy
 msgid "Код приглашения"
-msgstr ""
+msgstr "Чакыруу коду туура эмес."
 
 #: templates/admin_register.html:11
+#, fuzzy
 msgid "Введите код"
-msgstr ""
+msgstr "Сырсөз киргизиңиз"
 
 #: templates/admin_register.html:15 templates/form.html:78
 #: templates/register.html:10
 msgid "Иванов Иван Иванович"
-msgstr ""
+msgstr "Асанов Асан Асанович"
 
 #: templates/admin_register.html:20 templates/login.html:12
 #: templates/register.html:15
 msgid "Пароль"
-msgstr ""
+msgstr "Сырсөз"
 
 #: templates/admin_register.html:21 templates/auth_reset.html:20
 #: templates/register.html:16
+#, fuzzy
 msgid "Не менее 12 символов"
-msgstr ""
+msgstr "Кеминде 8 белги"
 
 #: templates/admin_register.html:23 templates/admin_register.html:24
 #: templates/auth_reset.html:22 templates/auth_reset.html:23
 #: templates/register.html:18 templates/register.html:19
 msgid "Повторите пароль"
-msgstr ""
+msgstr "Сырсөздү кайталаңыз"
 
 #: templates/admin_register.html:26
+#, fuzzy
 msgid "Создать админа"
-msgstr ""
+msgstr "Аккаунт түзүү"
 
 #: templates/admin_register.html:43 templates/register.html:40
+#, fuzzy
 msgid "Пароли не совпадают"
-msgstr ""
+msgstr "Сырсөздөр дал келбейт."
 
+# ==== Админ: тесты/конструктор ====
 #: templates/admin_test_form.html:5 templates/admin_test_form.html:35
 msgid "Новый тест"
-msgstr ""
+msgstr "Жаңы тест"
 
 #: templates/admin_test_form.html:5 templates/admin_test_form.html:35
 msgid "Редактирование теста"
-msgstr ""
+msgstr "Тестти түзөтүү"
 
 #: templates/admin_test_form.html:38
 msgid "Название"
-msgstr ""
+msgstr "Аталышы"
 
 #: templates/admin_test_form.html:42
 msgid "Описание (необязательно)"
-msgstr ""
+msgstr "Сыпаттама (милдеттүү эмес)"
 
 #: templates/admin_test_form.html:46 templates/admin_tests.html:290
 msgid "Длительность (мин.)"
-msgstr ""
+msgstr "Узактыгы (мин.)"
 
 #: templates/admin_test_form.html:50
 msgid "Вопросы (JSON)"
-msgstr ""
+msgstr "Суроолор (JSON)"
 
 #: templates/admin_test_form.html:52
 msgid "Пример вопроса?"
-msgstr ""
+msgstr "Суроонун мисалы?"
 
 #: templates/admin_test_form.html:54
 msgid "Формат: массив объектов"
-msgstr ""
+msgstr "Формат: объекттердин массиви"
 
 #: templates/admin_test_form.html:58 templates/admin_tests.html:308
 #: templates/admin_user_detail.html:69 templates/applications.html:129
 #: templates/auth_reset.html:25
 msgid "Сохранить"
-msgstr ""
+msgstr "Сактоо"
 
 #: templates/admin_tests.html:223
 msgid "Добавить"
-msgstr ""
+msgstr "Кошуу"
 
 #: templates/admin_tests.html:234
+#, fuzzy
 msgid "Опубликован"
-msgstr ""
+msgstr "Шилтеме көчүрүлдү"
 
 #: templates/admin_tests.html:234
+#, fuzzy
 msgid "Скрыт"
-msgstr ""
+msgstr "Жөнөтүү"
 
 #: templates/admin_tests.html:242
+#, fuzzy
 msgid "вопрос"
-msgstr ""
+msgstr "Суроонун тексти"
 
 #: templates/admin_tests.html:242
+#, fuzzy
 msgid "вопроса"
-msgstr ""
+msgstr "Суроонун тексти"
 
 #: templates/admin_tests.html:242
 msgid "вопросов"
@@ -825,79 +884,81 @@ msgstr ""
 
 #: templates/admin_tests.html:247
 msgid "Удалить тест?"
-msgstr ""
+msgstr "Тест өчүрүлсүнбү?"
 
 #: templates/admin_tests.html:248
 msgid "Удалить"
-msgstr ""
+msgstr "Өчүрүү"
 
 #: templates/admin_tests.html:251
 msgid "Редактировать"
-msgstr ""
+msgstr "Өзгөртүү"
 
 #: templates/admin_tests.html:254
 msgid "Ссылка на тест"
-msgstr ""
+msgstr "Тесттин шилтемеси"
 
 #: templates/admin_tests.html:262
+#, fuzzy
 msgid "Скрыть тест"
-msgstr ""
+msgstr "Тест түзүү"
 
 #: templates/admin_tests.html:262
+#, fuzzy
 msgid "Показать тест"
-msgstr ""
+msgstr "Тест түзүү"
 
 #: templates/admin_tests.html:277 templates/admin_tests.html:317
 msgid "Ссылка скопирована"
-msgstr ""
+msgstr "Шилтеме көчүрүлдү"
 
 #: templates/admin_tests.html:283 templates/admin_tests.html:319
 msgid "Создать тест"
-msgstr ""
+msgstr "Тест түзүү"
 
 #: templates/admin_tests.html:296
 msgid "Добавить вопрос"
-msgstr ""
+msgstr "Суроо кошуу"
 
 #: templates/admin_tests.html:318
 msgid "Не удалось загрузить тест"
-msgstr ""
+msgstr "Тестти жүктөө мүмкүн болгон жок"
 
 #: templates/admin_tests.html:320
 msgid "Редактировать тест"
-msgstr ""
+msgstr "Тестти түзөтүү"
 
 #: templates/admin_tests.html:321
 msgid "Текст вопроса"
-msgstr ""
+msgstr "Суроонун тексти"
 
 #: templates/admin_tests.html:322
 msgid "Добавить вариант ответа"
-msgstr ""
+msgstr "Жооп варианты кошуу"
 
 #: templates/admin_tests.html:323
 msgid "Вариант ответа"
-msgstr ""
+msgstr "Жооп варианты"
 
 #: templates/admin_tests.html:324
 msgid "Один ответ"
-msgstr ""
+msgstr "Бир жооп"
 
 #: templates/admin_tests.html:325
 msgid "Чекбокс"
-msgstr ""
+msgstr "Бир нече жооп"
 
 #: templates/admin_tests.html:326
 msgid "Добавьте хотя бы один вопрос."
-msgstr ""
+msgstr "Эң аз дегенде бир суроо кошуңуз."
 
 #: templates/admin_tests.html:327
 msgid "Без названия"
-msgstr ""
+msgstr "Аталышы жок"
 
 #: templates/admin_tests.html:421
 msgid "Шаблон № 1"
-msgstr ""
+msgstr "Үлгү № 1"
 
 #: templates/admin_user_detail.html:5 templates/admin_user_detail.html:33
 msgid "Детали заявки пользователя"
@@ -909,64 +970,65 @@ msgstr ""
 
 #: templates/admin_user_detail.html:50 templates/profile.html:62
 msgid "Данные отсутствуют"
-msgstr ""
+msgstr "Маалымат жок"
 
+# ==== Админ: статус заявки ====
 #: templates/admin_user_detail.html:54
 msgid "Статус заявки (для комиссии)"
-msgstr ""
+msgstr "Өтүнмөнүн статусу (комиссия үчүн)"
 
 #: templates/admin_user_detail.html:59
 msgid "Статус заявки:"
-msgstr ""
+msgstr "Өтүнмөнүн статусу:"
 
 #: templates/admin_user_detail.html:61
 msgid "Выберите статус"
-msgstr ""
+msgstr "Статусту тандаңыз"
 
 #: templates/admin_user_detail.html:66 templates/applications.html:81
 #: templates/applications.html:226
 msgid "Комментарий комиссии:"
-msgstr ""
+msgstr "Комиссиянын комментарийи:"
 
 #: templates/admin_user_detail.html:67
 msgid "Добавьте комментарий (особенно при отклонении)"
-msgstr ""
+msgstr "Комментарий кошуңуз (айрыкча четке кагылганда)"
 
 #: templates/admin_user_detail.html:73
 msgid "Назад к списку заявок"
-msgstr ""
+msgstr "Өтүнмөлөр тизмесине кайтуу"
 
 #: templates/applications.html:2 templates/requests.html:5
 #: templates/requests.html:24
 msgid "Мои заявки"
-msgstr ""
+msgstr "Менин өтүнмөлөрүм"
 
 #: templates/applications.html:69 templates/applications.html:165
 #: templates/form.html:40 templates/requests.html:32
 msgid "Ожидайте ответ в течение нескольких дней на почту"
-msgstr ""
+msgstr "Жооп бир нече күн ичинде почтаңызга келет"
 
 #: templates/applications.html:71 templates/applications.html:167
 msgid "Одобрено комиссией — проверьте почту, там ссылка на тест"
-msgstr ""
+msgstr "Комиссия бекитти — почтаңызды текшериңиз, тестке шилтеме бар"
 
 #: templates/applications.html:73 templates/applications.html:168
 msgid "К сожалению, отклонено. Подробности в письме на почте"
-msgstr ""
+msgstr "Тилекке каршы, четке кагылды. Толук маалымат катта"
 
 #: templates/applications.html:75 templates/applications.html:169
 #: templates/form.html:38 templates/requests.html:32
 msgid "Статус:"
-msgstr ""
+msgstr "Статус:"
 
 #: templates/applications.html:88 templates/form.html:49
 #: templates/requests.html:39
 msgid "У вас пока нет заявок."
-msgstr ""
+msgstr "Сизде азырынча өтүнмөлөр жок."
 
 #: templates/applications.html:94 templates/test_take.html:5
 msgid "Тест"
-msgstr ""
+msgstr "Тест"
 
 #: templates/applications.html:100 templates/applications.html:195
 msgid "Вы допущены к тестированию. Можно перейти к тестам."
@@ -974,15 +1036,16 @@ msgstr ""
 
 #: templates/applications.html:102 templates/applications.html:196
 msgid "Ссылка на тест появится после одобрения вашей заявки"
-msgstr ""
+msgstr "Өтүнмөңүз бекитилгенден кийин тестке шилтеме чыгат"
 
 #: templates/applications.html:110
 msgid "Перейти к тестам"
 msgstr ""
 
 #: templates/applications.html:121
+#, fuzzy
 msgid "Ваша ссылка на результат теста"
-msgstr ""
+msgstr "Тесттин жыйынтыгы"
 
 #: templates/applications.html:126
 msgid "Вставьте ссылку сюда (https://...)"
@@ -993,89 +1056,100 @@ msgid "После прохождения теста вставьте сюда с
 msgstr ""
 
 #: templates/auth_forgot.html:2 templates/auth_forgot.html:48
+#, fuzzy
 msgid "Забыли пароль"
-msgstr ""
+msgstr "Сырсөздү унуттуңузбу?"
 
 #: templates/auth_forgot.html:53
+#, fuzzy
 msgid "Отправить ссылку"
-msgstr ""
+msgstr "Жөнөтүү"
 
 #: templates/auth_forgot.html:63
+#, fuzzy
 msgid "Вспомнили пароль?"
-msgstr ""
+msgstr "Сырсөздү унуттуңузбу?"
 
 #: templates/auth_forgot.html:63 templates/login.html:19
 #: templates/register.html:31
 msgid "Войти"
-msgstr ""
+msgstr "Кирүү"
 
 #: templates/auth_reset.html:2 templates/auth_reset.html:17
+#, fuzzy
 msgid "Смена пароля"
-msgstr ""
+msgstr "Бардык талаалар"
 
 #: templates/auth_reset.html:19
+#, fuzzy
 msgid "Новый пароль"
-msgstr ""
+msgstr "Сырсөз"
 
 #: templates/base.html:5 templates/form.html:14
 msgid "Лидеры года — система"
-msgstr ""
+msgstr "Жылдын лидерлери — система"
 
 #: templates/base.html:301 templates/form.html:10 templates/requests.html:12
 msgid "Лого"
-msgstr ""
+msgstr "Логотип"
 
 #: templates/base.html:307 templates/form.html:24 templates/form.html:35
 msgid "Заявка отправлена"
-msgstr ""
+msgstr "Өтүнмө жөнөтүлдү"
 
+# ==== Профиль ====
 #: templates/base.html:337
+#, fuzzy
 msgid "Участник"
-msgstr ""
+msgstr "Катышуучунун профили"
 
 #: templates/base.html:381 templates/form.html:2 templates/requests.html:23
 msgid "Главная"
-msgstr ""
+msgstr "Башкы бет"
 
 #: templates/base.html:382
+#, fuzzy
 msgid "Профиль"
-msgstr ""
+msgstr "Сырсөз"
 
+# ==== Базовые ====
 #: templates/form.html:11
+#, fuzzy
 msgid "Лидеры<br>года"
-msgstr ""
+msgstr "Жылдын лидерлери"
 
 #: templates/form.html:15
 msgid "Удобный инструмент для подачи заявок"
-msgstr ""
+msgstr "Өтүнмө тапшыруу үчүн ыңгайлуу курал"
 
 #: templates/form.html:21
 msgid "Подать заявку"
-msgstr ""
+msgstr "Өтүнмө берүү"
 
 #: templates/form.html:61
+#, fuzzy
 msgid "Закрыть"
-msgstr ""
+msgstr "Аяктоо"
 
 #: templates/form.html:81
 msgid "Руководитель отдела"
-msgstr ""
+msgstr "Бөлүм башчы"
 
 #: templates/form.html:90
 msgid "+996 ... / соцсети"
-msgstr ""
+msgstr "+996 ... / социалдык тармактар"
 
 #: templates/form.html:96
 msgid "Город, улица, дом"
-msgstr ""
+msgstr "Шаар, көчө, үй"
 
 #: templates/form.html:105
 msgid "ВУЗ/колледж"
-msgstr ""
+msgstr "ЖОЖ/колледж"
 
 #: templates/form.html:111
 msgid "Специальность"
-msgstr ""
+msgstr "Адистик"
 
 #: templates/form.html:120
 msgid "(Укажите конкретные примеры, описывая вашу роль и вклад)"
@@ -1083,72 +1157,74 @@ msgstr ""
 
 #: templates/form.html:159
 msgid "Согласие на обработку персональных данных"
-msgstr ""
+msgstr "Жеке маалыматтарды иштетүүгө макулдук"
 
 #: templates/form.html:168
 msgid "Завершить"
-msgstr ""
+msgstr "Аяктоо"
 
+# ==== Логин/регистрация ====
 #: templates/login.html:2 templates/login.html:7
 msgid "Вход"
-msgstr ""
+msgstr "Кирүү"
 
 #: templates/login.html:9
 msgid "E-mail"
-msgstr ""
+msgstr "E-mail"
 
 #: templates/login.html:10
 msgid "Введите e-mail"
-msgstr ""
+msgstr "E-mail киргизиңиз"
 
 #: templates/login.html:13
 msgid "Введите пароль"
-msgstr ""
+msgstr "Сырсөз киргизиңиз"
 
 #: templates/login.html:15
 msgid "Забыли пароль?"
-msgstr ""
+msgstr "Сырсөздү унуттуңузбу?"
 
 #: templates/login.html:29
+#, fuzzy
 msgid "Нет аккаунта?"
-msgstr ""
+msgstr "Аккаунтуңуз барбы?"
 
 #: templates/login.html:29 templates/register.html:2 templates/register.html:7
 msgid "Регистрация"
-msgstr ""
+msgstr "Катталуу"
 
 #: templates/profile.html:53
 msgid "Анкета"
-msgstr ""
+msgstr "Анкета"
 
 #: templates/register.html:21
 msgid "Создать аккаунт"
-msgstr ""
+msgstr "Аккаунт түзүү"
 
 #: templates/register.html:31
 msgid "Уже есть аккаунт?"
-msgstr ""
+msgstr "Аккаунтуңуз барбы?"
 
 #: templates/test_result.html:5
 msgid "Результат теста"
-msgstr ""
+msgstr "Тесттин жыйынтыгы"
 
 #: templates/test_result.html:28
 msgid "Результат"
-msgstr ""
+msgstr "Жыйынтык"
 
 #: templates/test_result.html:29
 msgid "Тест:"
-msgstr ""
+msgstr "Тест:"
 
 #: templates/test_result.html:30
 #, python-format
 msgid "Ваш балл: %(score)d из %(total)d"
-msgstr ""
+msgstr "Сиздин упай: %(score)d / %(total)d"
 
 #: templates/test_result.html:31
 msgid "На главную"
-msgstr ""
+msgstr "Башкы бетке"
 
 #: templates/test_take.html:42
 msgid "На прохождение отведено время. Осталось:"
@@ -1164,13 +1240,20 @@ msgstr ""
 
 #: templates/test_take.html:98
 msgid "Отправить"
-msgstr ""
+msgstr "Жөнөтүү"
 
 #: templates/tests_select.html:2
+#, fuzzy
 msgid "Выбор теста"
-msgstr ""
+msgstr "Статусту тандаңыз"
 
 #: templates/tests_select.html:5
 msgid "Доступные тесты"
 msgstr ""
+
+#~ msgid "Опыт участия в аналогичных конкурсах"
+#~ msgstr "Ушуга окшош конкурстарга катышуу тажрыйбасы"
+
+#~ msgid "(Укажите проекты/инициативы, роль и вклад)"
+#~ msgstr "(Долбоорлорду/демилгелерди, ролуңузду жана салымыңызды жазыңыз)"
 

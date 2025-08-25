@@ -153,6 +153,105 @@
   .current-mark{margin-left:auto; color:#16a34a; font-weight:700}
   .lang-switch.open .lang-menu{display:block}
 
+ /* блок справа */
+.top-actions{ display:flex; align-items:center; gap:12px; position:relative; }
+
+/* Кнопка профиля — современная пилюля */
+.btn-user{
+  display:inline-flex; align-items:center; gap:10px;
+  padding:8px 12px; border-radius:999px;
+  background:#fff; border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 10px 30px -18px rgba(0,0,0,.45), 0 1px 0 rgba(0,0,0,.04);
+  cursor:pointer; user-select:none;
+  font-weight:600; color:#111827;
+  transition:transform .12s ease, box-shadow .25s ease, border-color .2s ease, background .2s ease;
+}
+.btn-user:hover{
+  transform:translateY(-1px);
+  border-color:#dbeafe;
+  box-shadow:0 18px 36px -22px rgba(0,0,0,.5), 0 1px 0 rgba(0,0,0,.06);
+}
+.btn-user:active{ transform:translateY(0); }
+.btn-user:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 4px rgba(34,197,94,.20), 0 10px 30px -18px rgba(0,0,0,.45);
+}
+
+/* аватар-инициал */
+.btn-user .avatar{
+  width:28px; height:28px; border-radius:50%;
+  display:grid; place-items:center;
+  font-size:13px; font-weight:800; color:#fff;
+  background:linear-gradient(135deg,#34d399,#16a34a); /* зелёная палитра */
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.65);
+}
+
+/* подпись и стрелка */
+.btn-user .user-label{
+  max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.btn-user .caret{ font-size:14px; line-height:1; opacity:.7; transition:transform .2s ease, opacity .2s ease; }
+.user-switch.open .btn-user .caret{ transform:rotate(180deg); opacity:1; }
+
+/* Дропдаун */
+.user-switch{ position:relative; }
+.user-menu{
+  position:absolute; right:0; top:calc(100% + 10px);
+  display:none; min-width:240px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+  box-shadow:0 24px 60px rgba(2,6,23,.22);
+  z-index:30; overflow:hidden;
+  transform-origin:top right; transform:scale(.98); opacity:0;
+  transition:transform .16s ease, opacity .16s ease;
+}
+.user-switch.open .user-menu{ display:block; transform:scale(1); opacity:1; }
+
+/* маленькая стрелочка-указатель */
+.user-menu::before{
+  content:""; position:absolute; right:16px; top:-7px; width:12px; height:12px;
+  background:#fff; border-left:1px solid #e5e7eb; border-top:1px solid #e5e7eb;
+  transform:rotate(45deg);
+}
+
+/* шапка меню */
+.user-menu .menu-head{
+  padding:10px 12px; background:#f8fafc; border-bottom:1px solid #e5e7eb;
+  display:flex; align-items:center; gap:10px;
+}
+.menu-head .mini-avatar{
+  width:28px; height:28px; border-radius:50%; display:grid; place-items:center;
+  font-size:12px; font-weight:800; color:#fff; background:linear-gradient(135deg,#34d399,#16a34a);
+}
+.menu-head .meta{ display:flex; flex-direction:column; font-size:12px; }
+.menu-head .meta .name{ font-weight:700; color:#0f172a; }
+.menu-head .meta .email{ color:#475569; }
+
+/* пункты меню */
+.menu-list{ display:grid; }
+.menu-item,
+.user-menu form button{
+  width:100%; display:flex; align-items:center; gap:10px;
+  padding:10px 12px; background:none; border:0; text-align:left;
+  font:inherit; color:#111827; text-decoration:none; cursor:pointer;
+  transition:background .15s ease, color .15s ease;
+}
+.menu-item:hover,
+.user-menu form button:hover{ background:#f3f4f6; }
+.menu-sep{ height:1px; background:#e5e7eb; margin:6px 0; }
+
+/* иконки слева у пунктов */
+.menu-icon{ width:18px; display:inline-flex; align-items:center; justify-content:center; }
+
+/* пункт "Выйти" — акцент */
+.menu-danger{ color:#b91c1c; }
+.menu-danger:hover{ background:#fee2e2; }
+
+/* компактнее на узких экранах */
+@media (max-width:640px){
+  .btn-user{ padding:6px 8px; gap:8px; }
+  .btn-user .user-label{ display:none; }
+}
+
   /* ===== Центровка для auth-страниц ===== */
   body[data-endpoint^="auth."] main.wrap{ display:grid; place-items:center; padding:0; }
   body[data-endpoint^="auth."] .h-title{ margin:0 0 18px; font-size:36px; font-weight:800; color:#0c2790; text-align:center; }
@@ -161,7 +260,8 @@
   body[data-endpoint="auth.login"] .card{ width:370px; border-radius:12px; padding:52px; }
   body[data-endpoint="auth.reset"] .card{ width:370px; border-radius:12px; padding:52px; }
   body[data-endpoint="auth.register"] .card{ border-radius:12px; padding:54px; }
-
+body[data-endpoint^="auth."] .user-switch,
+body[data-endpoint^="auth."] .btn-login { display: none !important; }
   /* ==== Точное поведение только для главной ==== */
   body[data-endpoint="main.index"] #fit-root{
     padding: 0 76px !important;      /* симметрия слева/справа */
@@ -215,22 +315,64 @@
       'ky': url_for('static', filename='ky.png'),
     } %}
 
-    <div class="lang-switch" id="langSwitch">
-      <button class="btn-lang" type="button" aria-haspopup="true" aria-expanded="false">
-        <img src="{{ flags[cur] }}" alt="" class="flag-round">
-        {{ 'Русский' if cur=='ru' else 'Кыргызча' }} <span class="caret">▾</span>
-      </button>
-      <div class="lang-menu" role="menu">
-        <a href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
-          <img src="{{ flags['ru'] }}" alt="" class="flag-round"> Русский
-          {% if cur=='ru' %}<span class="current-mark">✓</span>{% endif %}
-        </a>
-        <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
-          <img src="{{ flags['ky'] }}" alt="" class="flag-round"> Кыргызча
-          {% if cur=='ky' %}<span class="current-mark">✓</span>{% endif %}
-        </a>
+    <div class="top-actions">
+  <!-- язык -->
+  <div class="lang-switch" id="langSwitch">
+    <button class="btn-lang" type="button" aria-haspopup="true" aria-expanded="false">
+      <img src="{{ flags[cur] }}" alt="" class="flag-round">
+      {{ 'Русский' if cur=='ru' else 'Кыргызча' }} <span class="caret">▾</span>
+    </button>
+    <div class="lang-menu" role="menu">
+      <a href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
+        <img src="{{ flags['ru'] }}" alt="" class="flag-round"> Русский
+        {% if cur=='ru' %}<span class="current-mark">✓</span>{% endif %}
+      </a>
+      <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
+        <img src="{{ flags['ky'] }}" alt="" class="flag-round"> Кыргызча
+        {% if cur=='ky' %}<span class="current-mark">✓</span>{% endif %}
+      </a>
+    </div>
+  </div>
+
+{% set uname  = session.get('user_name')  or _('Участник') %}
+{% set uemail = session.get('user_email') or '' %}
+{% set initial = (uname[0] if uname else 'U')|upper %}
+
+<div class="user-switch" id="userSwitch">
+  <button class="btn-user" type="button" aria-haspopup="true" aria-expanded="false">
+    <span class="avatar">{{ initial }}</span>
+    <span class="user-label">{{ uname }}</span>
+    <span class="caret">▾</span>
+  </button>
+
+  <div class="user-menu" role="menu" aria-label="{{ _('Меню пользователя') }}">
+    <div class="menu-head">
+      <span class="mini-avatar">{{ initial }}</span>
+      <div class="meta">
+        <span class="name">{{ uname }}</span>
+        {% if uemail %}<span class="email">{{ uemail }}</span>{% endif %}
       </div>
     </div>
+
+    <div class="menu-list">
+      <a class="menu-item" role="menuitem"
+         href="{{ url_for('main.profile', user_id=session['user_id']) }}">
+        <span class="menu-icon">👤</span> {{ _('Профиль участника') }}
+      </a>
+
+      <div class="menu-sep"></div>
+
+      <form action="{{ url_for('auth.logout') }}" method="post">
+        {# <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> #}
+        <button type="submit" class="menu-danger" role="menuitem">
+          <span class="menu-icon">🚪</span> {{ _('Выйти') }}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+</div>
+
   </div>
 </header>
 
@@ -351,7 +493,17 @@
   // пересчёт, если контент изменился (например, смена языка)
   document.addEventListener('click', schedule, true);
 })();
-
+(function(){
+  const sw = document.getElementById('userSwitch');
+  if(!sw) return;
+  const btn = sw.querySelector('.btn-user');
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    sw.classList.toggle('open');
+    btn.setAttribute('aria-expanded', sw.classList.contains('open'));
+  });
+  document.addEventListener('click', ()=> sw.classList.remove('open'));
+})();
 </script>
 
 </body>

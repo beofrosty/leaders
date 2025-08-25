@@ -1,32 +1,34 @@
 # app/routes/tests.py
-import sqlite3, json, uuid, datetime
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
+import json, uuid, datetime
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort
 from ..decorators import login_required
-from ..db import get_user_by_email
+from ..db import get_user_by_email, get_conn
 from flask_babel import gettext as _
 
 bp = Blueprint('tests', __name__)
 
-# ---- helpers ---------------------------------------------------------------
+
+# ---------------------------- helpers --------------------------------------- #
 
 def _user_has_approved(user_id: str) -> bool:
-    """Есть ли у пользователя одобренная заявка (статус начинается с 'одобр'). LOWER() в SQLite не работает по-кириллице, поэтому проверяем в Python."""
-    DB = current_app.config['DB_PATH']
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+    """
+    Есть ли у пользователя одобренная заявка (статус начинается с 'одобр').
+    Проверяем в Python — надёжно для кириллицы.
+    """
+    with get_conn() as conn, conn.cursor() as c:
         c.execute("""
           SELECT commission_status
             FROM applications
-           WHERE user_id = ?
-           ORDER BY datetime(created_at) DESC
+           WHERE user_id = %s
+           ORDER BY created_at DESC NULLS LAST
            LIMIT 1
         """, (user_id,))
         row = c.fetchone()
-        if not row:
-            return False
-        s = (row['commission_status'] or '').strip()
-        return s.lower().startswith('одобр')
+    if not row:
+        return False
+    s = (row['commission_status'] or '').strip()
+    return s.lower().startswith('одобр')
+
 
 def _require_approved_or_redirect():
     u = get_user_by_email(session.get('user_email') or '')
@@ -38,7 +40,117 @@ def _require_approved_or_redirect():
     return u, None
 
 
-# ---- список тестов ---------------------------------------------------------
+def _parse_options(raw_opts):
+    """
+    Приводим варианты к списку строк:
+    - если строка — режем по переводам строк/точке с запятой
+    - если список — приводим элементы к строкам и убираем пустые
+    """
+    opts = raw_opts or []
+    if isinstance(opts, str):
+        opts = opts.replace('\r', '').replace(';', '\n').split('\n')
+        opts = [s.strip() for s in opts if s.strip()]
+    else:
+        opts = [str(s).strip() for s in opts if str(s).strip()]
+    return opts
+
+
+def _is_multiple(q: dict) -> bool:
+    qtype = str(q.get('type', '')).lower()
+    return bool(q.get('multiple')) or qtype in ('multi', 'multiple', 'checkbox', 'checkboxes', 'multi_select')
+
+
+def _parse_correct_indices(q: dict):
+    """
+    Поддерживаем несколько вариантов задания правильного ответа:
+    - correct: 1                   -> [1]
+    - correct: [1,3]               -> [1,3]
+    - correct_index: 2             -> [2]
+    - correct_indexes: [0,2]       -> [0,2]
+    - correct: "1,3" / "1;3"       -> [1,3]
+    """
+    cand = q.get('correct', None)
+    if cand is None:
+        cand = q.get('correct_index', None)
+    if cand is None:
+        cand = q.get('correct_indexes', None)
+
+    def _str_to_list(s: str):
+        s = s.replace(';', ',').replace(' ', ',')
+        parts = [p for p in s.split(',') if p != '']
+        return [int(p) for p in parts]
+
+    indices = []
+    if isinstance(cand, list):
+        try:
+            indices = [int(x) for x in cand]
+        except Exception:
+            indices = []
+    elif isinstance(cand, str):
+        try:
+            indices = _str_to_list(cand)
+        except Exception:
+            indices = []
+    elif cand is not None:
+        try:
+            indices = [int(cand)]
+        except Exception:
+            indices = []
+
+    return sorted(set(indices))
+
+
+def _normalize_questions(raw):
+    """
+    Не теряем множественный/одиночный тип.
+    multiple := true, если:
+      - multiple: true, ИЛИ
+      - type in {multi, multiple, checkbox, checkboxes}, ИЛИ
+      - correct — это список индексов (строка '0,2' тоже поддерживается).
+    """
+    norm = []
+    for q in (raw or []):
+        text = (q.get('text') or q.get('question') or q.get('q') or '').strip()
+
+        opts = q.get('options') or q.get('answers') or q.get('choices') or []
+        if isinstance(opts, str):
+            opts = [s.strip() for s in opts.replace('\r', '').replace(';', '\n').split('\n') if s.strip()]
+        else:
+            opts = [str(s).strip() for s in opts if str(s).strip()]
+
+        t = str(q.get('type') or '').lower()
+        corr_raw = q.get('correct')
+
+        if isinstance(corr_raw, str):
+            corr = [int(x) for x in corr_raw.replace(';', ',').split(',') if x.strip().isdigit()]
+        elif isinstance(corr_raw, list):
+            corr = [int(x) for x in corr_raw if str(x).isdigit()]
+        else:
+            corr = []
+
+        multiple = bool(q.get('multiple')) or (t in ('multi', 'multiple', 'checkbox', 'checkboxes')) or (len(corr) > 0)
+
+        if multiple:
+            correct_index = None
+        else:
+            try:
+                correct_index = int(q.get('correct_index'))
+            except Exception:
+                correct_index = None
+            corr = None
+
+        norm.append({
+            'text': text,
+            'options': opts,
+            'multiple': multiple,
+            'type': q.get('type') or ('multiple' if multiple else 'single'),
+            'correct_index': correct_index,  # одиночный
+            'correct': corr,                 # множественный
+        })
+    return norm
+
+
+# -------------------------- список тестов ----------------------------------- #
 
 @bp.get('/tests', endpoint='tests')
 @login_required
@@ -47,14 +159,12 @@ def tests_select():
     if resp:
         return resp
 
-    DB = current_app.config['DB_PATH']
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+    with get_conn() as conn, conn.cursor() as c:
         c.execute("""
           SELECT id, title, description, duration_minutes, created_at
             FROM tests
-           ORDER BY datetime(created_at) DESC
+           WHERE COALESCE(is_published, FALSE) = TRUE
+           ORDER BY created_at DESC NULLS LAST
         """)
         tests = c.fetchall()
 
@@ -68,14 +178,16 @@ def tests_select():
 
     return render_template('tests_select.html', tests=tests)
 
-# ---- альтернативный старт (удобно для ссылок) ------------------------------
+
+# -------------- альтернативный старт (удобно для прямых ссылок) ------------- #
 
 @bp.route('/tests/start/<test_id>', methods=['GET', 'POST'], endpoint='tests_start')
 @login_required
 def tests_start(test_id):
     return take_test(test_id)
 
-# ---- пройти тест -----------------------------------------------------------
+
+# ---------------------------- пройти тест ----------------------------------- #
 
 @bp.route('/tests/<test_id>', methods=['GET', 'POST'])
 @login_required
@@ -84,22 +196,25 @@ def take_test(test_id):
     if resp:
         return resp
 
-    DB = current_app.config['DB_PATH']
     end_key = f'test_end_{test_id}'
-    with sqlite3.connect(DB) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
 
+    with get_conn() as conn, conn.cursor() as c:
         # 1) Загружаем тест
-        c.execute("SELECT * FROM tests WHERE id=?", (test_id,))
+        c.execute("SELECT * FROM tests WHERE id = %s", (test_id,))
         t = c.fetchone()
         if not t:
             flash(('error', _('Тест не найден.')))
             return redirect(url_for('tests.tests'))
 
-        # 2) Считываем вопросы и total сразу (чтобы были доступны при ранних return)
+        # проверка публикации с допуском админа
+        published = bool(t.get('is_published'))
+        is_admin = str((u.get('role') if isinstance(u, dict) else u['role']) or '').lower() == 'admin'
+        if not published and not is_admin:
+            abort(404)
+
+        # 2) Вопросы (унифицированные) + total
         try:
-            questions = json.loads(t['questions'] or '[]')
+            questions = _normalize_questions(json.loads(t.get('questions') or '[]'))
         except Exception:
             questions = []
         total = len(questions)
@@ -108,8 +223,8 @@ def take_test(test_id):
         c.execute("""
           SELECT id, score, started_at, finished_at
             FROM test_attempts
-           WHERE user_id=? AND test_id=?
-           ORDER BY datetime(finished_at) DESC
+           WHERE user_id = %s AND test_id = %s
+           ORDER BY finished_at DESC NULLS LAST
            LIMIT 1
         """, (u['id'], test_id))
         last = c.fetchone()
@@ -122,7 +237,7 @@ def take_test(test_id):
 
         # 4) Обработка отправки ответов
         if request.method == 'POST':
-            # Серверная проверка таймера: берём дедлайн из сессии
+            # Серверная проверка таймера по сессии
             ends_at_str = session.get(end_key)
             if ends_at_str:
                 try:
@@ -130,7 +245,6 @@ def take_test(test_id):
                 except Exception:
                     ends_at = None
                 now_utc = datetime.datetime.now(datetime.timezone.utc)
-                # Нормализуем ends_at к aware-формату, если вдруг был naive
                 if ends_at and ends_at.tzinfo is None:
                     ends_at = ends_at.replace(tzinfo=datetime.timezone.utc)
                 if ends_at and now_utc > ends_at:
@@ -138,35 +252,50 @@ def take_test(test_id):
                     flash(('error', _('Время вышло')))
                     return redirect(url_for('tests.tests'))
 
-            # Валидация: ответы на все вопросы обязательны
+            # ----- Валидация и сбор ответов -----
             answers = []
             for i in range(total):
-                v = request.form.get(f'q{i}')
-                if v is None:
-                    flash(('error', _('Пожалуйста, ответьте на все вопросы.')))
-                    # Вернём форму с тем же дедлайном
-                    return render_template('test_take.html', test=t, questions=questions, ends_at=session.get(end_key))
-                answers.append(int(v) if isinstance(v, str) and v.isdigit() else -1)
+                if questions[i].get('multiple'):
+                    vals = request.form.getlist(f'q{i}')  # список строк
+                    if not vals:
+                        flash(('error', _('Пожалуйста, ответьте на все вопросы.')))
+                        return render_template('test_take.html', test=t, questions=questions,
+                                               ends_at=session.get(end_key))
+                    arr = sorted(set(int(v) for v in vals if str(v).isdigit()))
+                    answers.append(arr)
+                else:
+                    v = request.form.get(f'q{i}')
+                    if v is None:
+                        flash(('error', _('Пожалуйста, ответьте на все вопросы.')))
+                        return render_template('test_take.html', test=t, questions=questions,
+                                               ends_at=session.get(end_key))
+                    answers.append(int(v) if str(v).isdigit() else -1)
 
-            # Подсчёт баллов
+            # ----- Подсчёт баллов -----
             score = 0
             for i, q in enumerate(questions):
-                try:
-                    correct_idx = int(q.get('correct_index'))
-                except (TypeError, ValueError, AttributeError):
-                    correct_idx = None
-                if correct_idx is not None and answers[i] == correct_idx:
-                    score += 1
+                if q.get('multiple'):
+                    corr = sorted([int(x) for x in (q.get('correct') or [])])
+                    if corr and answers[i] == corr:
+                        score += 1
+                else:
+                    ci = q.get('correct_index')
+                    if ci is not None and answers[i] == int(ci):
+                        score += 1
 
             # Запись попытки
             c.execute("""
-              INSERT INTO test_attempts (id, user_id, test_id, started_at, finished_at, score, answers)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
+              INSERT INTO test_attempts
+                (id, user_id, test_id, started_at, finished_at, score, answers)
+              VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
-                str(uuid.uuid4()), u['id'], test_id,
-                datetime.datetime.utcnow().isoformat(),
-                datetime.datetime.utcnow().isoformat(),
-                score, json.dumps(answers, ensure_ascii=False)
+                str(uuid.uuid4()),
+                u['id'],
+                test_id,
+                datetime.datetime.now(datetime.timezone.utc),
+                datetime.datetime.now(datetime.timezone.utc),
+                score,
+                json.dumps(answers, ensure_ascii=False)
             ))
             conn.commit()
 
@@ -186,4 +315,5 @@ def take_test(test_id):
         ends_at = ends_at_dt.isoformat()
         session[end_key] = ends_at  # серверная «истина»
 
+    # шаблон должен уметь чекбоксы для multiple
     return render_template('test_take.html', test=t, questions=questions, ends_at=ends_at)

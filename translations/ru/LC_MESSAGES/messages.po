@@ -1,17 +1,19 @@
-# Translations template for PROJECT.
+# Russian translations for PROJECT.
 # Copyright (C) 2025 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2025-08-22 11:03+0600\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2025-08-12 11:38+0600\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: ru\n"
+"Language-Team: ru <LL@li.org>\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -649,6 +651,7 @@ msgid "Баллы за тест"
 msgstr ""
 
 #: templates/admin_dashboard.html:514
+#, fuzzy
 msgid "Всего вопросов"
 msgstr ""
 
@@ -812,14 +815,17 @@ msgid "Скрыт"
 msgstr ""
 
 #: templates/admin_tests.html:242
+#, fuzzy
 msgid "вопрос"
 msgstr ""
 
 #: templates/admin_tests.html:242
+#, fuzzy
 msgid "вопроса"
 msgstr ""
 
 #: templates/admin_tests.html:242
+#, fuzzy
 msgid "вопросов"
 msgstr ""
 
@@ -1173,4 +1179,46 @@ msgstr ""
 #: templates/tests_select.html:5
 msgid "Доступные тесты"
 msgstr ""
+
+#~ msgid "Пароль должен быть не короче 8 символов."
+#~ msgstr ""
+
+#~ msgid "Перейдите по ссылке из письма на вашей почте, чтобы пройти тест"
+#~ msgstr ""
+
+#~ msgid "Опишите свой опыт лидерства"
+#~ msgstr ""
+
+#~ msgid "(Укажите проекты/инициативы, роль и вклад)"
+#~ msgstr ""
+
+#~ msgid "Какие навыки и качества делают вас лидером?"
+#~ msgstr ""
+
+#~ msgid "Какие достижения считаете наиболее значимыми?"
+#~ msgstr ""
+
+#~ msgid "Как вы мотивируете команду?"
+#~ msgstr ""
+
+#~ msgid "Сложное решение в условиях неопределённости"
+#~ msgstr ""
+
+#~ msgid "Как справляетесь с конфликтами?"
+#~ msgstr ""
+
+#~ msgid "Как конкурс поможет достичь целей?"
+#~ msgstr ""
+
+#~ msgid "Что для вас значит быть лидером?"
+#~ msgstr ""
+
+#~ msgid "Почему решили участвовать?"
+#~ msgstr ""
+
+#~ msgid "Опыт участия в аналогичных конкурсах"
+#~ msgstr ""
+
+#~ msgid "Не менее 8 символов"
+#~ msgstr ""
 

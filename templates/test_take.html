@@ -14,8 +14,9 @@
     .card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px}
     .h1{font-size:22px;font-weight:700;margin:0 0 12px}
     .q{padding:12px 0;border-top:1px solid #f1f5f9}
+    .q .hint{color:#64748b;font-size:12px;margin-top:6px}
     label{display:block;margin:6px 0;cursor:pointer}
-    input[type="radio"]{margin-right:8px}
+    input[type="radio"], input[type="checkbox"]{margin-right:8px}
     .btn{border:none;background:#22c55e;color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:700;margin-top:12px}
     .btn:hover{filter:brightness(0.95)}
     .muted{color:#64748b}
@@ -30,7 +31,8 @@
     <a href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">Кыргызча</a>
   </div>
 
-  <form class="card" method="post">
+  <form id="testForm" class="card" method="post">
+
     <div class="h1">{{ test['title'] }}</div>
     {% if test['description'] %}
       <div class="muted">{{ test['description'] }}</div>
@@ -42,18 +44,55 @@
       </div>
     {% endif %}
 
+    {# ----- ВОПРОСЫ ----- #}
     {% for q in questions %}
-      {% set i = loop.index0 %}
+      {% set qi = loop.index0 %}
+      {% set qnum = loop.index %}
+      {% set is_multi = (
+  q.multiple
+  or (q.type|string|lower in ['multi','multiple','checkbox','checkboxes'])
+  or (q.correct is sequence and not (q.correct is string)) ) %}
+      {% set opts = q.options or [] %}
+      {# выбранное при повторном показе формы: #}
+      {% set selected_one  = request.form.get('q' ~ qi) %}
+      {% set selected_many = request.form.getlist('q' ~ qi) %}
+
       <div class="q">
-        <div><strong>{{ loop.index }}.</strong> {{ q.q }}</div>
-        {% for opt in q.options %}
-          {% set j = loop.index0 %}
-          {% set input_id = 'q' ~ i ~ '_' ~ j %}
-          <label for="{{ input_id }}">
-            <input id="{{ input_id }}" type="radio" name="q{{ i }}" value="{{ j }}">
-            {{ opt }}
-          </label>
-        {% endfor %}
+        <div><strong>{{ qnum }}.</strong> {{ q.text or q.question or q.q }}</div>
+
+        {% if opts|length == 0 %}
+          <div class="muted" style="margin-top:6px">{{ _('Нет вариантов ответа для этого вопроса') }}</div>
+        {% else %}
+          {% if is_multi %}
+            <div class="hint">{{ _('Можно выбрать несколько вариантов') }}</div>
+            {% for opt in opts %}
+              {% set oj = loop.index0 %}
+              {% set input_id = 'q' ~ qi ~ '_' ~ oj %}
+              <label for="{{ input_id }}">
+                <input id="{{ input_id }}"
+                       type="checkbox"
+                       name="q{{ qi }}"
+                       value="{{ oj }}"
+                       {% if selected_many and (oj|string in selected_many) %}checked{% endif %}>
+                {{ opt }}
+              </label>
+            {% endfor %}
+          {% else %}
+            {% for opt in opts %}
+              {% set oj = loop.index0 %}
+              {% set input_id = 'q' ~ qi ~ '_' ~ oj %}
+              <label for="{{ input_id }}">
+                <input id="{{ input_id }}"
+                       type="radio"
+                       name="q{{ qi }}"
+                       value="{{ oj }}"
+                       {% if selected_one is not none and selected_one == oj|string %}checked{% endif %}
+                       {% if selected_one is none and loop.first %}required{% endif %}>
+                {{ opt }}
+              </label>
+            {% endfor %}
+          {% endif %}
+        {% endif %}
       </div>
     {% endfor %}
 
@@ -66,16 +105,18 @@
 (function(){
   var endsAt = "{{ ends_at|e }}";
   if(!endsAt) return;
+
   var deadline = new Date(endsAt);
-  var timerEl = document.getElementById('timer');
-  var form = document.querySelector('form.card');
+  var timerEl  = document.getElementById('timer');
+  var form     = document.getElementById('testForm');
+  var submitted = false; // защита от двойной отправки
 
   function tick(){
     var now = new Date();
     var diff = Math.floor((deadline - now)/1000);
     if(diff <= 0){
       if (timerEl) timerEl.textContent = "{{ _('Время вышло') }}";
-      if (form) form.submit(); // авто-отправка: сервер дополнительно проверит время
+      if (form && !submitted) { submitted = true; form.submit(); }
       return;
     }
     var m = Math.floor(diff/60), s = diff % 60;
@@ -83,8 +124,28 @@
     setTimeout(tick, 1000);
   }
   tick();
+
+  // (опционально) Клиентская проверка для multi-вопросов:
+  // хотя бы один чекбокс должен быть отмечен в каждом multi-блоке
+  form && form.addEventListener('submit', function(e){
+    var groups = new Map();
+    form.querySelectorAll('input[type="checkbox"][name^="q"]').forEach(function(cb){
+      var name = cb.getAttribute('name');
+      if(!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(cb);
+    });
+    for (const [name, cbs] of groups.entries()) {
+      if (cbs.length > 1 && !cbs.some(cb => cb.checked)) {
+        e.preventDefault();
+        alert("{{ _('Пожалуйста, ответьте на все вопросы.') }}");
+        cbs[0].focus();
+        return false;
+      }
+    }
+  });
 })();
 </script>
 {% endif %}
+
 </body>
 </html>

@@ -1,5 +1,6 @@
 from app import create_app
-
+from dotenv import load_dotenv
+load_dotenv()
 try:
     from .app import create_app  # когда модуль импортируют как package: forum.run
 except ImportError:
