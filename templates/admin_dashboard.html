@@ -113,7 +113,7 @@
 .kv-value.collapsed{max-height:120px;overflow:hidden;-webkit-mask-image:linear-gradient(#000,rgba(0,0,0,0));mask-image:linear-gradient(#000,rgba(0,0,0,0))}
 .kv-toggle{margin-top:6px;display:inline-block;border:none;background:transparent;color:#0b7a45;font-weight:700;cursor:pointer}
 
-  /* ===== ЯЗЫК — как на первом скрине ===== */
+/* язык повтор (ок) */
 .lang-switch{position:relative;display:inline-block}
 .btn-lang{
   display:inline-flex;align-items:center;gap:8px;
@@ -122,7 +122,6 @@
 }
 .btn-lang .caret{margin-left:4px; font-size:12px; opacity:.75}
 .btn-lang img.flag-round{width:20px;height:20px;border-radius:50%}
-
 .lang-menu{
   position:absolute; right:0; top:calc(100% + 8px); z-index:1000;
   display:none; min-width:200px; background:#fff;
@@ -130,7 +129,6 @@
   box-shadow:0 12px 30px rgba(2,6,23,.18); padding:6px;
 }
 .lang-switch.open .lang-menu{display:block}
-
 .lang-item{
   display:flex; align-items:center; gap:10px;
   padding:8px 10px; border-radius:8px;
@@ -143,7 +141,8 @@
   transition:opacity .12s ease;
 }
 .lang-item.active .check{opacity:1}
-/* Кнопка пользователя + дропдаун */
+
+/* user dropdown */
 .user-switch{ position:relative; }
 .user-btn{
   display:flex; align-items:center; gap:10px;
@@ -154,8 +153,6 @@
 .user-btn:focus-visible{ outline:none; box-shadow:0 0 0 4px rgba(34,197,94,.20), 0 10px 30px -18px rgba(0,0,0,.45); }
 .user-btn .caret{ font-size:12px; opacity:.7; transition:transform .2s ease, opacity .2s ease; }
 .user-switch.open .user-btn .caret{ transform:rotate(180deg); opacity:1; }
-
-/* переиспользуем твою стилизацию .user */
 .user-inline{ display:flex; align-items:center; gap:10px; }
 .user-inline .who{ display:flex; flex-direction:column; line-height:1.1; text-align:right; }
 .user-inline .name{ font-size:14px; font-weight:600; }
@@ -164,8 +161,6 @@
   width:34px; height:34px; border-radius:50%;
   background:#e5f6ec; color:#1e824f; display:grid; place-items:center; font-weight:700;
 }
-
-/* меню */
 .user-menu{
   position:absolute; right:0; top:calc(100% + 8px); z-index:1000;
   display:none; min-width:220px; background:#fff;
@@ -175,7 +170,6 @@
   transition:transform .16s ease, opacity .16s ease;
 }
 .user-switch.open .user-menu{ display:block; transform:scale(1); opacity:1; }
-
 .user-menu .menu-item,
 .user-menu form button{
   width:100%; display:flex; align-items:center; gap:10px;
@@ -189,13 +183,10 @@
 
 .overlay--confirm{ z-index:1100; }
 .modal-confirm{ width:min(420px,94vw); border-radius:12px; }
-
-
 </style>
 </head>
 <body>
 <div class="layout">
-  <!-- aside -->
   <aside class="aside">
     <div class="brand">
       <img src="{{ url_for('static', filename='logo.png') }}" alt="">
@@ -207,58 +198,52 @@
     </nav>
   </aside>
 
-  <!-- main -->
   <div>
     <header class="topbar">
       {% set cur = (get_locale() or 'ru') %}
       {% set flags = {'ru': url_for('static', filename='ru.png'), 'ky': url_for('static', filename='ky.png')} %}
-     <div class="lang-switch" id="langSwitch" style="margin-right:auto;padding-left:16px">
-  <button class="btn-lang" type="button" aria-haspopup="listbox" aria-expanded="false">
-    <img src="{{ flags[cur] }}" alt="" class="flag-round">
-    <span class="lbl">{{ 'Русский' if cur=='ru' else 'Кыргызча' }}</span>
-    <span class="caret">▾</span>
-  </button>
-
-  <div class="lang-menu" role="listbox" aria-label="{{ _('Выбор языка') }}">
-    <a class="lang-item {{ 'active' if cur=='ru' else '' }}"
-       href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
-      <img src="{{ flags['ru'] }}" alt="" class="flag-round">
-      <span>Русский</span>
-      <span class="check" aria-hidden="true">✓</span>
-    </a>
-    <a class="lang-item {{ 'active' if cur=='ky' else '' }}"
-       href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
-      <img src="{{ flags['ky'] }}" alt="" class="flag-round">
-      <span>Кыргызча</span>
-      <span class="check" aria-hidden="true">✓</span>
-    </a>
-  </div>
-</div>
-
+      <div class="lang-switch" id="langSwitch" style="margin-right:auto;padding-left:16px">
+        <button class="btn-lang" type="button" aria-haspopup="listbox" aria-expanded="false">
+          <img src="{{ flags[cur] }}" alt="" class="flag-round">
+          <span class="lbl">{{ 'Русский' if cur=='ru' else 'Кыргызча' }}</span>
+          <span class="caret">▾</span>
+        </button>
+        <div class="lang-menu" role="listbox" aria-label="{{ _('Выбор языка') }}">
+          <a class="lang-item {{ 'active' if cur=='ru' else '' }}"
+             href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
+            <img src="{{ flags['ru'] }}" alt="" class="flag-round">
+            <span>Русский</span>
+            <span class="check" aria-hidden="true">✓</span>
+          </a>
+          <a class="lang-item {{ 'active' if cur=='ky' else '' }}"
+             href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
+            <img src="{{ flags['ky'] }}" alt="" class="flag-round">
+            <span>Кыргызча</span>
+            <span class="check" aria-hidden="true">✓</span>
+          </a>
+        </div>
+      </div>
 
       <div class="user-switch" id="userSwitch" style="margin-left:8px;">
-  <button class="user-btn" type="button" aria-haspopup="true" aria-expanded="false">
-    <div class="user-inline">
-      <div class="who">
-        <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
-        <span class="role">
-          {{ _('Супер админ') if user and user['role']=='admin' else _('Администратор') }}
-        </span>
+        <button class="user-btn" type="button" aria-haspopup="true" aria-expanded="false">
+          <div class="user-inline">
+            <div class="who">
+              <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
+              <span class="role">
+                {{ _('Комиссия') if user and user['role']=='admin' else _('Администратор') }}
+              </span>
+            </div>
+            <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
+          </div>
+          <span class="caret">▾</span>
+        </button>
+        <div class="user-menu" role="menu" aria-label="{{ _('Меню пользователя') }}">
+          <a class="menu-item" href="{{ url_for('main.profile', user_id=session['user_id']) }}">👤 {{ _('Профиль участника') }}</a>
+          <form action="{{ url_for('auth.logout') }}" method="post">
+            <button type="submit" class="danger">🚪 {{ _('Выйти') }}</button>
+          </form>
+        </div>
       </div>
-      <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
-    </div>
-    <span class="caret">▾</span>
-  </button>
-
-  <div class="user-menu" role="menu" aria-label="{{ _('Меню пользователя') }}">
-    <a class="menu-item" href="{{ url_for('main.profile', user_id=session['user_id']) }}">👤 {{ _('Профиль участника') }}</a>
-    <form action="{{ url_for('auth.logout') }}" method="post">
-      {# <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> #}
-      <button type="submit" class="danger">🚪 {{ _('Выйти') }}</button>
-    </form>
-  </div>
-</div>
-
     </header>
 
     <main class="content">
@@ -267,7 +252,6 @@
         <span class="chip">{{ _('Все заявки') }} <span class="cnt">{{ items|length }}</span></span>
       </div>
 
-      <!-- Инфо-блок -->
       <div class="card" role="note" aria-label="{{ _('Этап 2: Рассмотрение заявки') }}">
         <div class="card-title">{{ _('Этап 2: Рассмотрение заявки') }}</div>
         <ul class="bullets">
@@ -285,26 +269,28 @@
       {% if items and items|length %}
         {% for it in items %}
           <div class="card" data-row="{{ it['id'] }}">
-            <div class="card-title">{{ _('Заявка №') }} {{ loop.index }}</div>
+            <div class="card-title">{{ _('Заявка №') }} {{ it.public_no or loop.index }}</div>
+
 
             <div class="table">
               <div class="header">
-  <div>{{ _('Дата') }}</div>
-  <div>{{ _('ФИО') }}</div>
-  <div class="right">{{ _('Статус / Действия') }}</div>
-</div>
+                <div>{{ _('Дата') }}</div>
+                <div>{{ _('ФИО') }}</div>
+                <div class="right">{{ _('Статус / Действия') }}</div>
+              </div>
 
-<div class="row">
-  <div class="muted">{{ it['created_at'].strftime('%d.%m.%y') if it['created_at'] else '-' }}</div>
-  <div>{{ it['full_name'] or '—' }}</div>
-  <div class="right">
-    {% if it['commission_status'] %}
-      {% set ok = (it['commission_status']|lower).startswith('одобр') %}
-      <span class="chip chip--status chip-status {{ 'ok' if ok else 'bad' }}">{{ it['commission_status'] }}</span>
-    {% endif %}
-    <button class="btn details-btn" type="button" data-id="{{ it['id'] }}">{{ _('Детали') }}</button>
-  </div>
-</div>
+              <div class="row">
+                <div class="muted">{{ it['created_at'].strftime('%d.%m.%y') if it['created_at'] else '-' }}</div>
+                <div>{{ it['full_name'] or '—' }}</div>
+                <div class="right">
+                  {% if it['commission_status'] %}
+                    {% set code = it['commission_status'] %}
+                    {% set label = _('Одобрено') if code=='approved' else (_('Отклонено') if code=='rejected' else code) %}
+                    <span class="chip chip--status chip-status {{ 'ok' if code=='approved' else ('bad' if code=='rejected' else '') }}">{{ label }}</span>
+                  {% endif %}
+                  <button class="btn details-btn" type="button" data-id="{{ it['id'] }}">{{ _('Детали') }}</button>
+                </div>
+              </div>
 
             </div>
           </div>
@@ -324,7 +310,6 @@
       <button class="m-close" type="button" data-close>×</button>
     </div>
 
-    <!-- 5 шагов -->
     <div class="stepper">
       <div class="step active"><div class="dot">1</div><div>{{ _('Личные данные') }}</div></div>
       <div class="step"><div class="dot">2</div><div>{{ _('Образование') }}</div></div>
@@ -338,10 +323,10 @@
       <section class="pane" data-step="0">
         <div class="grid">
           <label class="field"><span>{{ _('ФИО') }}</span><input id="f_full_name" readonly></label>
-          <label class="field"><span>{{ _('Занимающая должность') }}</span><input id="f_position" readonly></label>
+          <label class="field"><span>{{ _('Занимаемая должность') }}</span><input id="f_position" readonly></label>
           <label class="field"><span>{{ _('Дата рождения') }}</span><input id="f_birth_date" readonly></label>
           <label class="field"><span>{{ _('Дата создания заявки') }}</span><input id="f_created_at" readonly></label>
-          <label class="field"><span>{{ _('Контактные связи') }}</span><input id="f_contacts" readonly></label>
+          <label class="field"><span>{{ _('Контакты') }}</span><input id="f_contacts" readonly></label>
           <label class="field"><span>{{ _('Электронная почта') }}</span><input id="f_email" readonly></label>
           <label class="field" style="grid-column:1/-1"><span>{{ _('Адрес проживания') }}</span><input id="f_address" readonly></label>
         </div>
@@ -359,28 +344,27 @@
       <!-- STEP 3 -->
       <section class="pane" data-step="2" hidden>
         <div class="grid">
-          <label class="field"><span>{{ _('Опишите свой опыт лидерства. В каких проектах/инициативах вы принимали участие?') }}</span><textarea id="f_leadership_experience" readonly></textarea></label>
-          <label class="field"><span>{{ _('Какие навыки и качества, на ваш взгляд, делают вас хорошим лидером?') }}</span><textarea id="f_leader_skills" readonly></textarea></label>
-          <label class="field"><span>{{ _('Какие достижения в личной и профессиональной жизни вы считаете наиболее значимыми?') }}</span><textarea id="f_personal_achievements" readonly></textarea></label>
-          <label class="field"><span>{{ _('Как вы мотивируете команду к достижению целей?') }}</span><textarea id="f_motivation" readonly></textarea></label>
+          <label class="field"><span>{{ _('Опишите свой опыт лидерства...') }}</span><textarea id="f_leadership_experience" readonly></textarea></label>
+          <label class="field"><span>{{ _('Какие навыки и качества...') }}</span><textarea id="f_leader_skills" readonly></textarea></label>
+          <label class="field"><span>{{ _('Какие достижения...') }}</span><textarea id="f_personal_achievements" readonly></textarea></label>
+          <label class="field"><span>{{ _('Как вы мотивируете команду...') }}</span><textarea id="f_motivation" readonly></textarea></label>
         </div>
       </section>
 
       <!-- STEP 4 -->
       <section class="pane" data-step="3" hidden>
         <div class="grid">
-          <label class="field"><span>{{ _('Опишите случай, когда вам пришлось принять сложное решение в условиях неопределенности. Как вы поступили?') }}</span><textarea id="f_decision_case" readonly></textarea></label>
-          <label class="field"><span>{{ _('Как вы справляетесь с конфликтами в коллективе?') }}</span><textarea id="f_conflict_resolution" readonly></textarea></label>
-          <label class="field"><span>{{ _('Какие цели вы ставите перед собой в ближайшие 3-5 лет?') }}</span><textarea id="f_goals" readonly></textarea></label>
-          <label class="field"><span>{{ _('Как участие в конкурсе лидеров может помочь вам в достижении этих целей?') }}</span><textarea id="f_contest_benefit" readonly></textarea></label>
-          <label class="field"><span>{{ _('Что для вас означает быть лидером?') }}</span><textarea id="f_leader_definition" readonly></textarea></label>
-          <label class="field"><span>{{ _('Почему вы решили участвовать в этом конкурсе?') }}</span><textarea id="f_reason" readonly></textarea></label>
-          <label class="field"><span>{{ _('Есть ли у вас опыт участия в аналогичных конкурсах иди проектах? Если да, то в каких?') }}</span><textarea id="f_similar_experience" readonly></textarea></label>
-
+          <label class="field"><span>{{ _('Сложное решение') }}</span><textarea id="f_decision_case" readonly></textarea></label>
+          <label class="field"><span>{{ _('Конфликты') }}</span><textarea id="f_conflict_resolution" readonly></textarea></label>
+          <label class="field"><span>{{ _('Цели на 3–5 лет') }}</span><textarea id="f_goals" readonly></textarea></label>
+          <label class="field"><span>{{ _('Как конкурс поможет') }}</span><textarea id="f_contest_benefit" readonly></textarea></label>
+          <label class="field"><span>{{ _('Что значит быть лидером') }}</span><textarea id="f_leader_definition" readonly></textarea></label>
+          <label class="field"><span>{{ _('Почему участвуете') }}</span><textarea id="f_reason" readonly></textarea></label>
+          <label class="field"><span>{{ _('Опыт участия в конкурсах') }}</span><textarea id="f_similar_experience" readonly></textarea></label>
         </div>
       </section>
 
-      <!-- STEP 5: все поля динамически (улучшенная версия) -->
+      <!-- STEP 5 -->
       <section class="pane" data-step="4" hidden>
         <div class="kv-toolbar">
           <input id="kvSearch" class="kv-search" placeholder="{{ _('Поиск по полям') }}">
@@ -397,15 +381,16 @@
         <button class="btn-primary" type="button" id="nextStepBtn">{{ _('Продолжить') }}</button>
       </div>
       <div class="decision">
-  <input id="decisionReason" class="reason-input" placeholder="{{ _('Причина (обязательно для отклонения)') }}">
-  <button class="btn-ghost" type="button" id="approveBtn">✅ {{ _('Одобрить') }}</button>
-  <button class="btn-danger" type="button" id="rejectBtn">⛔ {{ _('Отклонить') }}</button>
-  <span id="decisionLockNote" class="muted" hidden></span>
-</div>
+        <input id="decisionReason" class="reason-input" placeholder="{{ _('Причина (обязательно для отклонения)') }}">
+        <button class="btn-ghost" type="button" id="approveBtn">✅ {{ _('Одобрить') }}</button>
+        <button class="btn-danger" type="button" id="rejectBtn">⛔ {{ _('Отклонить') }}</button>
+        <span id="decisionLockNote" class="muted" hidden></span>
+      </div>
     </div>
   </div>
 </div>
-<!-- CONFIRM (универсальная) -->
+
+<!-- CONFIRM -->
 <div id="confirmOverlay" class="overlay overlay--confirm" aria-hidden="true">
   <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="cTitle">
     <div class="m-head">
@@ -422,14 +407,18 @@
   </div>
 </div>
 
-
 <script>
+  // Кнопки решения доступны снаружи
   const approveBtn = document.getElementById('approveBtn');
-  const rejectBtn = document.getElementById('rejectBtn');
+  const rejectBtn  = document.getElementById('rejectBtn');
   const reasonInput = document.getElementById('decisionReason');
   const DECIDE_URL_TPL = "{{ url_for('admin.admin_decide', app_id='__ID__') }}";
-(function(){
 
+  // Глобальные логгеры ошибок (удобно при отладке)
+  window.addEventListener('error', e => console.error('JS error:', e.error || e.message));
+  window.addEventListener('unhandledrejection', e => console.error('Unhandled promise:', e.reason));
+
+(function(){
   const overlay = document.getElementById('detailsOverlay');
   const closeBtns = overlay.querySelectorAll('[data-close]');
   const panes = [...overlay.querySelectorAll('.pane')];
@@ -438,16 +427,21 @@
   const prevBtn = document.getElementById('prevStepBtn');
   const nextBtn = document.getElementById('nextStepBtn');
 
-
   const TXT_DONE = "{{ _('Готово') }}";
   const TXT_NEXT = "{{ _('Продолжить') }}";
   const TXT_ERR = {
     net: "{{ _('Ошибка сети') }}",
     need_reason: "{{ _('Укажите причину отклонения') }}",
-    bad_status: "{{ _('Некорректный статус') }}",
+    bad_status: "{{ _('Некорректный статус') }}"
   };
-  const L_OK = "{{ _('Одобрено') }}";
+  const L_OK  = "{{ _('Одобрено') }}";
   const L_BAD = "{{ _('Отклонено') }}";
+
+  function codeToLabel(code){
+    if (code === 'approved') return L_OK;
+    if (code === 'rejected') return L_BAD;
+    return code || '';
+  }
 
   let current = 0;
   let currentAppId = null;
@@ -497,24 +491,17 @@
     goals: "{{ _('Цели на 3–5 лет') }}",
     contest_benefit: "{{ _('Как конкурс поможет') }}",
     leader_definition: "{{ _('Что значит быть лидером') }}",
-    leader_definition_2: "{{ _('Что значит быть лидером (доп.)') }}",
     reason: "{{ _('Почему участвуете') }}",
     similar_experience: "{{ _('Опыт участия в конкурсах') }}",
-
-        // --- Тест (для шага 5 "Все поля") ---
     test_status: "{{ _('Статус теста') }}",
-    // test_title: "{{ _('Название теста') }}",
     test_score: "{{ _('Баллы за тест') }}",
     test_total: "{{ _('Всего вопросов') }}",
     test_percent: "{{ _('Процент правильных, %') }}",
-    // test_time_spent: "{{ _('Время (сек)') }}",
-    // test_answers: "{{ _('Ответы на тест') }}",
-     test_link: "{{ _('Ссылка на видео') }}",
+    test_link: "{{ _('Ссылка на видео') }}"
   };
 
-   const KV_EXCLUDE = new Set(['id', 'consent']);
+  const KV_EXCLUDE = new Set(['id', 'consent']);
 
-  // ==== STEP 5: улучшенный список key/value ====
   const kvGrid = document.getElementById('kvGrid');
   const kvSearch = document.getElementById('kvSearch');
   const kvShowEmpty = document.getElementById('kvShowEmpty');
@@ -586,11 +573,9 @@
   kvCollapseLong && kvCollapseLong.addEventListener('change', renderKv);
 
   function fillKvList(formObj, meta){
-    // Сначала собираем данные
     const base = { id: meta.id, email: meta.email, full_name: meta.full_name, created_at: (meta.created_at || '').slice(0,10) };
     const merged = {...base, ...formObj};
 
-    // Приоритет известных полей
     const knownOrder = Object.keys(LABELS);
     const entries = Object.entries(merged)
       .filter(([k]) => !KV_EXCLUDE.has(k))
@@ -607,154 +592,161 @@
 
   async function loadDetails(appId){
     const url = "{{ url_for('admin.admin_app_json', app_id='__ID__') }}".replace('__ID__', appId);
-    const r = await fetch(url);
-    if(!r.ok){ alert('{{ _("Не удалось загрузить детали") }}'); return; }
-    const j = await r.json();
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+
+    let j;
+    try { j = await r.json(); } catch { throw new Error('Bad JSON from ' + url); }
+
+    // helpers back
     const f = j.form || {};
     const get = k => (f[k] ?? '');
-    const getDate = v => (v || '').slice(0,10);
+    const getDate = (v) => {
+      if (!v) return '';
+      if (typeof v === 'string') return v.slice(0,10);
+      try { return new Date(v).toISOString().slice(0,10); } catch { return ''; }
+    };
 
-    // Шаг 1
-    setVal('f_full_name', j.full_name || get('full_name'));
-    setVal('f_email', j.email || get('email'));
+    // step 1
+    setVal('f_full_name',  j.full_name || get('full_name'));
+    setVal('f_email',      j.email || get('email'));
     setVal('f_created_at', getDate(j.created_at || get('created_at')));
-    setVal('f_position', get('position'));
+    setVal('f_position',   get('position'));
     setVal('f_birth_date', get('birth_date'));
-    setVal('f_contacts', get('contacts'));
-    setVal('f_address', get('address'));
+    setVal('f_contacts',   get('contacts'));
+    setVal('f_address',    get('address'));
 
-    // Шаг 2
+    // step 2
     setVal('f_education_institution', get('education_institution'));
-    setVal('f_graduation_year', get('graduation_year'));
-    setVal('f_specialization', get('specialization'));
+    setVal('f_graduation_year',       get('graduation_year'));
+    setVal('f_specialization',        get('specialization'));
 
-    // Шаг 3
-    setVal('f_leadership_experience', get('leadership_experience'));
-    setVal('f_leader_skills', get('leader_skills'));
-    setVal('f_personal_achievements', get('personal_achievements'));
-    setVal('f_motivation', get('motivation'));
+    // step 3
+    setVal('f_leadership_experience',  get('leadership_experience'));
+    setVal('f_leader_skills',          get('leader_skills'));
+    setVal('f_personal_achievements',  get('personal_achievements'));
+    setVal('f_motivation',             get('motivation'));
 
-    // Шаг 4
-    setVal('f_decision_case', get('decision_case'));
+    // step 4
+    setVal('f_decision_case',       get('decision_case'));
     setVal('f_conflict_resolution', get('conflict_resolution'));
-    setVal('f_goals', get('goals'));
-    setVal('f_contest_benefit', get('contest_benefit'));
-    setVal('f_reason', get('reason'));
-    setVal('f_similar_experience', get('similar_experience'));
+    setVal('f_goals',               get('goals'));
+    setVal('f_contest_benefit',     get('contest_benefit'));
+    setVal('f_reason',              get('reason'));
+    setVal('f_leader_definition',   get('leader_definition'));
+    setVal('f_similar_experience',  get('similar_experience'));
 
-    // Шаг 5 — красиво
-    // Шаг 5 — красиво (+ результаты теста, если пройден)
-const t = j.test || null;
-const passed =
-  (t && typeof t.passed !== 'undefined') ? t.passed :
-  (typeof j.test_passed !== 'undefined' ? j.test_passed : null);
+    // step 5: тест
+    const t = j.test || null;
+    const passed =
+      (t && typeof t.passed !== 'undefined') ? t.passed :
+      (typeof j.test_passed !== 'undefined' ? j.test_passed : null);
 
-const testFields = {};
-if (t || j.test_score != null) {
-  // Берём из объекта j.test, а если его нет — из плоских полей j.test_*
-  testFields.test_status = (passed === true) ? "{{ _('Пройден') }}" : "{{ _('Не пройден') }}";
-  // testFields.test_title      = (t && t.title)       ?? j.test_title      ?? '';
-  testFields.test_score      = (t && t.score)       ?? j.test_score      ?? null;
-  testFields.test_total      = (t && t.total)       ?? j.test_total      ?? null;
-  testFields.test_percent    = (t && t.percent)     ?? j.test_percent    ?? null;
-  // testFields.test_time_spent = (t && t.time_spent)  ?? j.test_time_spent ?? null;
-  // testFields.test_answers    = (t && t.answers)     ?? j.test_answers    ?? null;
-}
-
-// >>> ВСТАВЬ ЗДЕСЬ едиственную decide(status) <<<
-  async function decide(status){
-    if (!currentAppId) return;
-
-    // локальная защита от дабл-кликов
-    if (approveBtn.disabled && rejectBtn.disabled) return;
-
-    const reason = (reasonInput.value || '').trim();
-    if (status === 'rejected' && !reason){
-      alert(TXT_ERR.need_reason);
-      return;
+    const testFields = {};
+    if (t || j.test_score != null) {
+      testFields.test_status   = (passed === true) ? "{{ _('Пройден') }}" : "{{ _('Не пройден') }}";
+      testFields.test_score    = (t && t.score)   ?? j.test_score   ?? null;
+      testFields.test_total    = (t && t.total)   ?? j.test_total   ?? null;
+      testFields.test_percent  = (t && t.percent) ?? j.test_percent ?? null;
     }
 
-    // временно блокируем, пока ждём ответ
-    approveBtn.disabled = true;
-    rejectBtn.disabled  = true;
+    async function decide(status){
+      if (!currentAppId) return;
+      if (approveBtn.disabled && rejectBtn.disabled) return;
 
-    try{
-      const url = DECIDE_URL_TPL.replace('__ID__', currentAppId);
-      const r = await fetch(url, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ status, reason })
-      });
-      const j = await r.json();
-
-      if (!r.ok || !j.ok){
-        if (j.error === 'already_decided'){
-          lockDecisionUI(true, j.status || '');
-          alert('{{ _("Решение по этой заявке уже принято.") }}');
-          return;
-        }
-        alert(j.error === 'need_reason' ? TXT_ERR.need_reason :
-              j.error === 'bad_status' ? TXT_ERR.bad_status : TXT_ERR.net);
-        approveBtn.disabled = false;
-        rejectBtn.disabled  = false;
+      const reason = (reasonInput.value || '').trim();
+      if (status === 'rejected' && !reason){
+        alert(TXT_ERR.need_reason);
         return;
       }
 
-      // Обновляем чип в общем списке
-      const rowBtn = document.querySelector(`.details-btn[data-id="${currentAppId}"]`);
-      if (rowBtn){
-        const right = rowBtn.closest('.right');
-        let chip = right.querySelector('.chip-status');
-        if (!chip){
-          chip = document.createElement('span');
-          chip.className = 'chip chip--status chip-status';
-          right.insertBefore(chip, rowBtn);
+      approveBtn.disabled = true;
+      rejectBtn.disabled  = true;
+
+      try{
+        const url = DECIDE_URL_TPL.replace('__ID__', currentAppId);
+        const r = await fetch(url, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ status, reason })
+        });
+        const j = await r.json();
+
+        if (!r.ok || !j.ok){
+          if (j.error === 'already_decided'){
+            lockDecisionUI(true, j.status_label || codeToLabel(j.status || j.status_code || ''));
+            alert('{{ _("Решение по этой заявке уже принято.") }}');
+            return;
+          }
+          alert(j.error === 'need_reason' ? TXT_ERR.need_reason :
+                j.error === 'bad_status' ? TXT_ERR.bad_status : TXT_ERR.net);
+          approveBtn.disabled = false;
+          rejectBtn.disabled  = false;
+          return;
         }
-        chip.textContent = j.status;
-        chip.classList.toggle('ok',  j.status === L_OK);
-        chip.classList.toggle('bad', j.status === L_BAD);
+
+        // Обновляем чип в списке
+        const rowBtn = document.querySelector(`.details-btn[data-id="${currentAppId}"]`);
+        if (rowBtn){
+          const right = rowBtn.closest('.right');
+          let chip = right.querySelector('.chip-status');
+          if (!chip){
+            chip = document.createElement('span');
+            chip.className = 'chip chip--status chip-status';
+            right.insertBefore(chip, rowBtn);
+          }
+          const code  = j.status_code
+                     || (j.status === L_OK ? 'approved'
+                         : (j.status === L_BAD ? 'rejected' : ''));
+          const label = j.status_label || codeToLabel(code) || (j.status || '');
+
+          chip.textContent = label;
+          chip.classList.toggle('ok',  code === 'approved');
+          chip.classList.toggle('bad', code === 'rejected');
+
+          lockDecisionUI(true, label);
+        }
+
+        closeModal();
+
+      } catch(e){
+        console.error(e);
+        alert(TXT_ERR.net);
+        approveBtn.disabled = false;
+        rejectBtn.disabled  = false;
       }
-
-      lockDecisionUI(true, j.status || '');
-      closeModal();
-
-    } catch(e){
-      alert(TXT_ERR.net);
-      approveBtn.disabled = false;
-      rejectBtn.disabled  = false;
     }
+    window.decide = decide;
+
+    // Ссылка на видео (если есть и тест пройден)
+    const link =
+      (t && (t.link || t.video_link)) ??
+      j.test_link ??
+      j.video_link ?? null;
+    if (passed === true && link) testFields.test_link = link;
+
+    const f2 = { ...f, ...testFields };
+    fillKvList(f2, { id:j.id, email:j.email, full_name:j.full_name, created_at:j.created_at });
+    applyDecisionLockFromPayload(j);
   }
 
-  // Сделаем доступной глобально для обработчика подтверждения
-  window.decide = decide;
+  // Делегирование клика по «Детали»
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.details-btn');
+    if (!btn) return;
 
-// Ссылка на видео/результат — берём из j.test.link или j.test_link
-const link =
-  (t && (t.link || t.video_link)) ??
-  j.test_link ??
-  j.video_link ??
-  null;
+    const appId = btn.dataset.id;
+    openModal(appId);
 
-// показываем только если тест пройден и ссылка есть
-if (passed === true && link) {
-  testFields.test_link = link;
-}
-
-
-// Сливаем форму + (возможные) тестовые поля и рендерим
-const f2 = { ...f, ...testFields };
-fillKvList(f2, { id:j.id, email:j.email, full_name:j.full_name, created_at:j.created_at });
-applyDecisionLockFromPayload(j);
-  }
-
-  document.querySelectorAll('.details-btn').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const appId = btn.dataset.id;
+    try {
       await loadDetails(appId);
-      openModal(appId);
-    });
+    } catch (err) {
+      console.error('loadDetails failed:', err);
+      alert('{{ _("Не удалось загрузить детали") }}');
+    }
   });
-})();
+
+})(); // конец IIFE
 
 // vh fix
 (function(){ function setVh(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01 + 'px'); } setVh(); window.addEventListener('resize', setVh); })();
@@ -766,7 +758,9 @@ applyDecisionLockFromPayload(j);
   btn.addEventListener('click', (e)=>{ e.stopPropagation(); sw.classList.toggle('open'); btn.setAttribute('aria-expanded', sw.classList.contains('open')); });
   document.addEventListener('click', ()=> sw.classList.remove('open'));
 })();
-  (function(){
+
+// user menu
+(function(){
   const sw = document.getElementById('userSwitch');
   if(!sw) return;
   const btn = sw.querySelector('.user-btn');
@@ -780,23 +774,17 @@ applyDecisionLockFromPayload(j);
   document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
 })();
 
-   /* ===== Подтверждение + блокировка повторного решения ===== */
-
-// Модалка подтверждения
+/* ===== Подтверждение + блокировка повторного решения ===== */
 const confirmBox      = document.getElementById('confirmOverlay');
 const confirmText     = document.getElementById('confirmText');
 const confirmYes      = document.getElementById('confirmYes');
 const confirmNo       = document.getElementById('confirmNo');
 const confirmCloseBtn = confirmBox ? confirmBox.querySelector('[data-close-confirm]') : null;
 
-
-// Заметка-локер и сами элементы управления решением
 const lockNote = document.getElementById('decisionLockNote');
-
-let pendingAction = null; // 'approved' | 'rejected'
+let pendingAction = null;
 
 function openConfirm(action){
-  // Для отклонения обязательно требуем причину до подтверждения
   if (action === 'rejected') {
     const reason = (reasonInput.value || '').trim();
     if (!reason) {
@@ -805,7 +793,6 @@ function openConfirm(action){
       return;
     }
   }
-
   pendingAction = action;
 
   if (action === 'approved') {
@@ -826,18 +813,14 @@ function closeConfirm(){
   confirmBox.classList.remove('open');
   pendingAction = null;
 }
-
-// Удобная блокировка UI, когда решение уже принято
 function lockDecisionUI(decided, statusText){
   approveBtn.disabled  = !!decided;
   rejectBtn.disabled   = !!decided;
   reasonInput.disabled = !!decided;
-
   lockNote.hidden = !decided;
   lockNote.textContent = decided ? ('{{ _("Решение уже принято:") }} ' + (statusText || '')) : '';
 }
 
-// Хуки на кнопки
 approveBtn.addEventListener('click', ()=>{
   if (approveBtn.disabled) return;
   openConfirm('approved');
@@ -847,23 +830,19 @@ rejectBtn.addEventListener('click', ()=>{
   openConfirm('rejected');
 });
 
-// Подтверждение диалога
 confirmYes.addEventListener('click', ()=>{
   const act = pendingAction;
   closeConfirm();
   if (act) decide(act);
 });
 confirmNo.addEventListener('click', closeConfirm);
-confirmCloseBtn.addEventListener('click', closeConfirm);
+confirmCloseBtn && confirmCloseBtn.addEventListener('click', closeConfirm);
 
-// Вызови это после загрузки деталей (в конце loadDetails)
 function applyDecisionLockFromPayload(j){
-  // поддерживаем оба ключа (если ты уже переименовал на бэке — будет j.status)
-  const statusText = j.status || j.commission_status || '';
-  lockDecisionUI(!!statusText, statusText);
+  const code  = j.status || j.commission_status || '';
+  const label = j.status_label || (code ? (code === 'approved' || code === 'rejected' ? (code==='approved' ? "{{ _('Одобрено') }}" : "{{ _('Отклонено') }}") : code) : '');
+  lockDecisionUI(!!code, label);
 }
-
-
 </script>
 
 </body>

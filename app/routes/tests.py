@@ -12,8 +12,8 @@ bp = Blueprint('tests', __name__)
 
 def _user_has_approved(user_id: str) -> bool:
     """
-    Есть ли у пользователя одобренная заявка (статус начинается с 'одобр').
-    Проверяем в Python — надёжно для кириллицы.
+    Есть ли у пользователя одобренная заявка.
+    Поддерживаем и код ('approved'), и старое русское ('Одобрено...').
     """
     with get_conn() as conn, conn.cursor() as c:
         c.execute("""
@@ -24,10 +24,13 @@ def _user_has_approved(user_id: str) -> bool:
            LIMIT 1
         """, (user_id,))
         row = c.fetchone()
+
     if not row:
         return False
-    s = (row['commission_status'] or '').strip()
-    return s.lower().startswith('одобр')
+
+    s = (row['commission_status'] or '').strip().lower()
+    return s == 'approved' or s.startswith('одобр')
+
 
 
 def _require_approved_or_redirect():

@@ -1,0 +1,45 @@
+version: "3.9"
+services:
+  web:
+    image: registry.git.agrosmart.gov.kg/mvc/forum:v1
+    container_name: forum
+    env_file:
+      - .env
+    environment:
+      GUNICORN_CMD_ARGS: "--workers=1 --threads=4"
+      # Fallbacks in case .env is not provided
+      FLASK_ENV: production
+      # Make sure DB_DSN is set in .env; this is a sane default for compose:
+      DB_DSN: postgresql://app_user:Strong_Pass_123@db:5432/leaders
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - mailhog
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: Strong_Pass_123
+      POSTGRES_DB: leaders
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025:8025" # Web UI at http://localhost:8025
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

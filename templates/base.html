@@ -288,6 +288,85 @@ body[data-endpoint^="auth."] .btn-login { display: none !important; }
   margin: 48px auto 0;   /* сверху 48px, по бокам auto, снизу 0 */
   max-width: 640px;      /* опционально */
 }
+  /* ==== OVERRIDES: страницы провижининга (endpoint начинается с "prov.") ==== */
+body[data-endpoint^="prov."] {
+  overflow: auto;                 /* вернуть прокрутку страницы */
+  background: #f7f8fa;
+}
+
+/* скрыть базовую навигацию сверху — у провижининга свой сайдбар */
+body[data-endpoint^="prov."] .navbar {
+  display: none !important;
+}
+
+/* основной контейнер на всю высоту окна (только с учётом верхней топ-панели) */
+body[data-endpoint^="prov."] main.wrap {
+  height: calc(100vh - var(--topbar-h));
+  overflow: visible;              /* не обрезаем контент внутри */
+  padding: 0;
+}
+
+/* критично: НЕ масштабировать provisioning-страницы */
+body[data-endpoint^="prov."] #fit-root {
+  transform: none !important;
+  width: 100% !important;
+  will-change: auto !important;
+}
+/* --- Только для страниц провижининга: карточки во всю ширину --- */
+body[data-endpoint^="prov."] .card{
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 0 16px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.04); /* мягче, как в макете */
+  border: 1px solid #eef0f2;
+}
+/* ==== OVERRIDES: страницы провижининга (endpoint начинается с "prov.") ==== */
+
+/* убрать глобальную зелёную шапку полностью */
+body[data-endpoint^="prov."] header.topbar{
+  display: none !important;
+}
+
+/* скрыть базовую навигацию */
+body[data-endpoint^="prov."] .navbar{
+  display: none !important;
+}
+
+/* вернуть нормальную прокрутку и не урезать высоту */
+body[data-endpoint^="prov."]{
+  overflow: auto;
+  background:#f7f8fa;
+}
+
+/* высота контента на всю страницу (без шапок) и без обрезки */
+body[data-endpoint^="prov."] main.wrap{
+  height: 100vh !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+/* не масштабировать #fit-root */
+body[data-endpoint^="prov."] #fit-root{
+  transform: none !important;
+  width: 100% !important;
+  will-change: auto !important;
+}
+
+/* карточки — НЕ узкие, тянутся на 100% */
+body[data-endpoint^="prov."] .card{
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 0 16px !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,.04);
+  border: 1px solid #eef0f2;
+}
+
+/* а это — ограничим "узкие" карточки только для остальных страниц */
+body:not([data-endpoint^="prov."]) .card{
+  width:min(460px,92vw);
+  margin:0 auto;
+}
+
 </style>
 
 
@@ -457,6 +536,10 @@ body[data-endpoint^="auth."] .btn-login { display: none !important; }
   const main  = document.querySelector('main.wrap');
   const fitRoot = document.getElementById('fit-root') || main;
   let raf;
+  // НЕ применять автоскейл к страницам провижининга
+  const endpoint = (document.body && document.body.dataset && document.body.dataset.endpoint) || "";
+  const isProv = endpoint.startsWith("prov.");
+  if (isProv) return;
 
   function setFrameHeights(){
     root.style.setProperty('--topbar-h', (topbar?.offsetHeight || 0) + 'px');

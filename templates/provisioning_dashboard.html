@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="{{ get_locale() or 'ru' }}">
+<head>
+<meta charset="utf-8">
+<title>{{ _('Пользователи · Лидеры года') }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--g:#1c7a45;--bg:#f6f7f8;--border:#e5e7eb;--muted:#64748b;--shadow:0 8px 30px rgba(0,0,0,.06);--green:#22c55e}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg)}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+/* aside */
+.aside{background:var(--g);color:#fff;padding:16px 12px}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:14px}
+.brand img{width:36px;height:36px;border-radius:50%}
+.nav{display:flex;flex-direction:column;gap:6px}
+.nav a{display:flex;align-items:center;gap:10px;color:#e8fbee;text-decoration:none;padding:10px 12px;border-radius:10px}
+.nav a.active,.nav a:hover{background:#0e5935;color:#fff}
+
+/* topbar */
+.topbar{background:#fff;border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 18px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+
+.user-inline{display:flex;align-items:center;gap:10px}
+.user-inline .who{display:flex;flex-direction:column;line-height:1.1;text-align:right}
+.user-inline .name{font-size:14px;font-weight:600}
+.user-inline .role{font-size:12px;color:#475569}
+.user-inline .avatar{width:34px;height:34px;border-radius:50%;background:#e5f6ec;color:#1e824f;display:grid;place-items:center;font-weight:700}
+
+/* language */
+.lang-switch{position:relative}
+.btn-lang{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;height:34px;cursor:pointer}
+.btn-lang img{width:20px;height:20px;border-radius:50%}
+.lang-menu{position:absolute;right:0;top:calc(100% + 8px);display:none;min-width:200px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 30px rgba(2,6,23,.18);padding:6px;z-index:10}
+.lang-switch.open .lang-menu{display:block}
+.lang-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:#0f172a;text-decoration:none}
+.lang-item:hover{background:#f8fafc}
+.lang-item .check{margin-left:auto;color:var(--green);font-weight:700;opacity:0}
+.lang-item.active .check{opacity:1}
+
+/* user menu (logout) */
+.user-switch{position:relative}
+.user-btn{
+  display:flex;align-items:center;gap:10px;
+  background:#fff;border:1px solid #e5e7eb;border-radius:999px;
+  padding:6px 10px;height:36px;cursor:pointer;
+  box-shadow:0 10px 30px -18px rgba(0,0,0,.45), 0 1px 0 rgba(0,0,0,.04);
+}
+.user-btn .caret{font-size:12px;opacity:.7;transition:transform .2s ease,opacity .2s ease}
+.user-switch.open .user-btn .caret{transform:rotate(180deg);opacity:1}
+.user-menu{
+  position:absolute;right:0;top:calc(100% + 8px);z-index:15;
+  display:none;min-width:220px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;
+  box-shadow:0 24px 60px rgba(2,6,23,.22);overflow:hidden;
+  transform-origin:top right;transform:scale(.98);opacity:0;
+  transition:transform .16s ease,opacity .16s ease;
+}
+.user-switch.open .user-menu{display:block;transform:scale(1);opacity:1}
+.user-menu .menu-item,
+.user-menu form button{
+  width:100%;display:flex;align-items:center;gap:10px;
+  padding:10px 12px;background:none;border:0;text-align:left;
+  font:inherit;color:#111827;text-decoration:none;cursor:pointer;
+}
+.user-menu .menu-item:hover,
+.user-menu form button:hover{background:#f3f4f6}
+.user-menu .danger{color:#b91c1c}
+.user-menu .danger:hover{background:#fee2e2}
+
+/* content */
+.content{padding:18px 22px}
+.h1{font-size:20px;font-weight:700;margin:8px 0 16px;display:flex;align-items:center;gap:12px}
+.btn{border:none;background:var(--green);color:#fff;padding:10px 16px;border-radius:10px;font-weight:600;cursor:pointer}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px}
+.table{width:100%;border-collapse:separate;border-spacing:0}
+.table th,.table td{padding:10px 12px;border-top:1px solid #eef1f4;vertical-align:middle;font-size:14px}
+.table thead th{border-top:none;color:#0f172a;font-weight:700;background:#fafafa}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700}
+.badge.ok{background:#e8f7ef;color:#0b7a45}
+.badge.off{background:#f1f5f9;color:#475569}
+
+/* row actions */
+.kebab{position:relative}
+.kebab-btn{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;cursor:pointer}
+.kebab-menu{position:absolute;right:0;top:calc(100% + 6px);display:none;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 12px 30px rgba(2,6,23,.18);min-width:160px;overflow:hidden;z-index:5}
+.kebab.open .kebab-menu{display:block}
+.kebab-menu a,.kebab-menu button{display:block;width:100%;padding:9px 12px;background:#fff;border:0;text-align:left;cursor:pointer}
+.kebab-menu a:hover,.kebab-menu button:hover{background:#f8fafc}
+.kebab-menu .danger{color:#b91c1c}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:1000}
+.overlay.open{display:grid}
+.modal{width:min(760px,94vw);background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 20px 60px rgba(2,6,23,.18);overflow:hidden}
+.m-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)}
+.m-title{font-weight:700}
+.m-close{appearance:none;border:none;background:transparent;font-size:22px;cursor:pointer}
+.m-body{padding:16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field input,.field select{padding:10px;border:1px solid var(--border);border-radius:8px;background:#f9fafb}
+.m-foot{padding:12px 16px;border-top:1px solid var(--border);background:#fafafa;display:flex;gap:8px;justify-content:flex-end}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+
+  /* фикс размеров флагов в меню языков */
+.lang-menu img,
+.lang-item img{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  flex:0 0 20px; /* чтобы не растягивались */
+}
+.lang-item{ font-size:14px; line-height:1.1; }
+
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- aside -->
+  <aside class="aside">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="">
+      <strong>{{ _('Лидеры года') }}</strong>
+    </div>
+    <nav class="nav">
+  <a class="active" href="{{ url_for('prov.dashboard') }}">👥 {{ _('Пользователи') }}</a>
+  <a href="{{ url_for('prov.commission_logs_page') }}">📜 {{ _('История комиссии') }}</a>
+</nav>
+
+  </aside>
+
+  <!-- main -->
+  <div>
+    <header class="topbar">
+      <div></div>
+      <div class="topbar-right">
+        {% set cur = (get_locale() or 'ru') %}
+        {% set flags = {
+          'ru': url_for('static', filename='ru.png'),
+          'ky': url_for('static', filename='ky.png')
+        } %}
+
+        <!-- Language -->
+        <div class="lang-switch" id="langSwitch">
+          <button class="btn-lang" type="button">
+            <img src="{{ flags[cur] }}" alt="">
+            {{ 'Русский' if cur=='ru' else 'Кыргызча' }} <span class="caret">▾</span>
+          </button>
+          <div class="lang-menu">
+            <a class="lang-item {{ 'active' if cur=='ru' else '' }}" href="{{ url_for('set_locale', lang='ru', next=request.full_path) }}">
+              <img src="{{ flags['ru'] }}" alt=""><span>Русский</span><span class="check">✓</span>
+            </a>
+            <a class="lang-item {{ 'active' if cur=='ky' else '' }}" href="{{ url_for('set_locale', lang='ky', next=request.full_path) }}">
+              <img src="{{ flags['ky'] }}" alt=""><span>Кыргызча</span><span class="check">✓</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- User + logout -->
+        <div class="user-switch" id="userSwitch">
+          <button class="user-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <div class="user-inline">
+              <div class="who">
+                <div class="name">{{ session.get('user_email') or '—' }}</div>
+                <div class="role">{{ _('Супер админ') }}</div>
+              </div>
+              <div class="avatar">{{ (session.get('user_email','A')[0]|upper) }}</div>
+            </div>
+            <span class="caret">▾</span>
+          </button>
+          <div class="user-menu" role="menu" aria-label="{{ _('Меню пользователя') }}">
+            <form action="{{ url_for('auth.logout') }}" method="post">
+              {# <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> #}
+              <button type="submit" class="danger">🚪 {{ _('Выйти') }}</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="h1">
+        <span>{{ _('Список Администраторов') }}</span>
+        <button class="btn" id="openCreate">{{ _('+ Добавить пользователя') }}</button>
+      </div>
+
+      <div class="card">
+        {% if not users %}
+          <div style="padding:24px;text-align:center;color:#64748b">{{ _('Данных нет') }}</div>
+        {% else %}
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>№</th>
+                  <th>{{ _('ФИО') }}</th>
+                  <th>{{ _('Должность') }}</th>
+                  <th>{{ _('ИНН') }}</th>
+                  <th>{{ _('Почта') }}</th>
+                  <th>{{ _('Номер телефона') }}</th>
+                  <th>{{ _('Время доступа') }}</th>
+                  <th>{{ _('Дата') }}</th>
+                  <th>{{ _('Статус') }}</th>
+                  <th class="text-end">{{ _('Действие') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for u in users %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td>{{ u.full_name or '—' }}</td>
+                  <td>{{ u.position or '—' }}</td>
+                  <td>{{ u.inn or '—' }}</td>
+                  <td>{{ u.email }}</td>
+                  <td>{{ u.phone or '—' }}</td>
+                  <td>{{ (u.access_expires_at.isoformat()[:10] ~ ' ' ~ (u.access_expires_at.isoformat()[11:16] if u.access_expires_at else '')) if u.access_expires_at else '—' }}</td>
+                  <td>{{ u.created_at.strftime('%d.%m.%y') if u.created_at else '—' }}</td>
+                  <td>
+                    {% if u.is_active %}<span class="badge ok">{{ _('Активен') }}</span>
+                    {% else %}<span class="badge off">{{ _('Отключён') }}</span>{% endif %}
+                  </td>
+                  <td>
+                    <div class="kebab" data-id="{{ u.id }}">
+                      <button class="kebab-btn" type="button">⋮</button>
+                      <div class="kebab-menu">
+                        <button class="js-extend" type="button">{{ _('Изменить') }}</button>
+                        <button class="danger js-delete" type="button">{{ _('Удалить') }}</button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- CREATE MODAL -->
+<div class="overlay" id="createOverlay" aria-hidden="true">
+  <form class="modal" method="post" action="{{ url_for('prov.create_internal_user') }}">
+    <div class="m-head">
+      <div class="m-title">{{ _('Добавить пользователя (Сотрудника)') }}</div>
+      <button class="m-close" type="button" data-close>×</button>
+    </div>
+    <div class="m-body">
+      <div class="grid">
+        <label class="field">
+          <span>{{ _('ФИО') }}</span>
+          <input name="full_name" required>
+        </label>
+        <label class="field">
+  <span>{{ _('ИНН') }}</span>
+  <input name="inn" id="innInput" required
+         inputmode="numeric" minlength="14" maxlength="14"
+         pattern="\d{14}" placeholder="14 цифр">
+</label>
+
+<label class="field">
+  <span>{{ _('Контактные данные') }}</span>
+  <input name="phone" id="kgPhone" required
+         inputmode="tel"
+         placeholder="+996 (XXX) XXX-XXX"
+         pattern="^\+996\s?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{3}$">
+</label>
+        <label class="field">
+          <span>{{ _('Электронная почта') }}</span>
+          <input name="email" type="email" required>
+        </label>
+        <label class="field">
+          <span>{{ _('Пароль') }}</span>
+          <input name="password" type="password" minlength="12" required>
+        </label>
+        <label class="field">
+          <span>{{ _('Повторите пароль') }}</span>
+          <input name="password2" type="password" minlength="12" required>
+        </label>
+        <label class="field">
+          <span>{{ _('Время доступа') }}</span>
+          <input name="access_until" type="datetime-local" required>
+        </label>
+        <label class="field">
+          <span>{{ _('Должность') }}</span>
+          <input name="position" placeholder="{{ _('Кыз деми') }}">
+        </label>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn" type="submit">{{ _('Создать') }}</button>
+      <button class="btn" type="button" data-close style="background:#e5e7eb;color:#111">{{ _('Отмена') }}</button>
+    </div>
+  </form>
+</div>
+
+<script>
+// language
+(function(){
+  const sw = document.getElementById('langSwitch'); if(!sw) return;
+  const btn = sw.querySelector('.btn-lang');
+  btn.addEventListener('click', (e)=>{ e.stopPropagation(); sw.classList.toggle('open'); });
+  document.addEventListener('click', ()=> sw.classList.remove('open'));
+})();
+
+// user menu (logout)
+(function(){
+  const sw = document.getElementById('userSwitch'); if(!sw) return;
+  const btn = sw.querySelector('.user-btn');
+  function close(){ sw.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const open = sw.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
+})();
+
+// modal (open only by button)
+(function(){
+  const o = document.getElementById('createOverlay');
+  const openBtn = document.getElementById('openCreate');
+  function close(){ o.classList.remove('open'); document.body.style.overflow=''; }
+  openBtn && openBtn.addEventListener('click', ()=>{ o.classList.add('open'); document.body.style.overflow='hidden'; });
+  o.querySelectorAll('[data-close]').forEach(b=> b.addEventListener('click', close));
+  o.addEventListener('click', e=>{ if(e.target===o) close(); });
+})();
+
+// kebab per row
+document.querySelectorAll('.kebab-btn').forEach(btn=>{
+  const wrap = btn.closest('.kebab');
+  btn.addEventListener('click', (e)=>{ e.stopPropagation(); wrap.classList.toggle('open'); });
+  document.addEventListener('click', ()=> wrap.classList.remove('open'));
+});
+
+// extend / delete
+document.querySelectorAll('.js-extend').forEach(b=>{
+  b.addEventListener('click', async (e)=>{
+    const row = e.target.closest('.kebab'); const id = row.dataset.id;
+    const iso = prompt("{{ _('Новая дата/время в формате ГГГГ-ММ-ДДTчч:мм') }}");
+    if (!iso) return;
+    const resp = await fetch('{{ url_for("prov.extend_access", user_id="__ID__") }}'.replace('__ID__', id), {
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:new URLSearchParams({ access_until: iso })
+    });
+    if (resp.ok) location.reload(); else alert('Error');
+  });
+});
+document.querySelectorAll('.js-delete').forEach(b=>{
+  b.addEventListener('click', async (e)=>{
+    const row = e.target.closest('.kebab'); const id = row.dataset.id;
+    if (!confirm('{{ _("Отключить пользователя?") }}')) return;
+    const resp = await fetch('{{ url_for("prov.delete_user", user_id="__ID__") }}'.replace('__ID__', id), { method:'POST' });
+    if (resp.ok) location.reload(); else alert('Error');
+  });
+});
+</script>
+<script>
+(function(){
+  const modal = document.getElementById('createOverlay');
+  if(!modal) return;
+
+  const form  = modal.querySelector('form');
+  const inn   = document.getElementById('innInput');
+  const phone = document.getElementById('kgPhone');
+
+  /* ==== ИНН КР: ровно 14 цифр ==== */
+  const innMsg = '{{ _("Введите 14 цифр ИНН") }}';
+  if (inn) {
+    inn.addEventListener('input', () => {
+      inn.value = inn.value.replace(/\D/g, '').slice(0,14);
+      inn.setCustomValidity(inn.value.length === 14 ? '' : innMsg);
+    });
+  }
+
+  /* ==== Телефон КР: +996 (XXX) XXX-XXX ==== */
+  const phoneMsg = '{{ _("Введите номер формата +996 (XXX) XXX-XXX") }}';
+
+  function formatKg(raw){
+    const d = raw.replace(/\D/g,'');
+    let num = d;
+
+    // варианты ввода: 0XXX..., 996XXX..., просто 9 цифр
+    if (d.startsWith('0') && d.length >= 10) {
+      num = '996' + d.slice(1,10);            // 0 + 9 цифр → +996 + 9 цифр
+    } else if (d.startsWith('996')) {
+      num = d.slice(0,12);                    // +996 и ещё 9 цифр
+    } else {
+      const tail = d.slice(-9);               // берём последние 9 цифр как NSN
+      num = '996' + tail;
+    }
+
+    const nsn = num.slice(3,12);              // 9 цифр нац. номера
+    const a = nsn.slice(0,3), b = nsn.slice(3,6), c = nsn.slice(6,9);
+    let out = '+996';
+    if (a) out += ' ' + a;
+    if (b) out += ' ' + b;
+    if (c) out += '-' + c;
+    return out;
+  }
+
+  function validatePhone(){
+    const nsn = phone.value.replace(/\D/g,'').replace(/^996/,'');
+    phone.setCustomValidity(nsn.length === 9 ? '' : phoneMsg);
+  }
+
+  if (phone) {
+    phone.addEventListener('focus', () => { if (!phone.value) phone.value = '+996 '; });
+    ['input','paste','blur'].forEach(ev => {
+      phone.addEventListener(ev, () => {
+        const caretEnd = document.activeElement === phone;
+        phone.value = formatKg(phone.value);
+        if (caretEnd) phone.selectionStart = phone.selectionEnd = phone.value.length;
+        validatePhone();
+      });
+    });
+  }
+
+  /* ==== Нормализация перед сабмитом ==== */
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      if (inn && inn.value.replace(/\D/g,'').length !== 14) {
+        inn.reportValidity(); e.preventDefault(); return;
+      }
+      if (phone) {
+        const nsn = phone.value.replace(/\D/g,'').replace(/^996/,'').slice(0,9);
+        if (nsn.length !== 9) { phone.reportValidity(); e.preventDefault(); return; }
+        // Отправляем в стабильном E.164-виде
+        phone.value = '+996' + nsn;
+      }
+      if (inn) inn.value = inn.value.replace(/\D/g,'').slice(0,14);
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

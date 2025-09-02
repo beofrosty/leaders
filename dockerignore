@@ -1,0 +1,20 @@
+# Docker build context exclusions
+.git
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.mypy_cache/
+.pytest_cache/
+.DS_Store
+.idea/
+.vscode/
+*.sqlite3
+*.log
+.env
+node_modules/
+*/__pycache__/

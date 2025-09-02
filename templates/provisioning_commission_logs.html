@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="{{ get_locale() or 'ru' }}">
+<head>
+  <meta charset="utf-8">
+  <title>{{ _('История действий комиссии') }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{--g:#1c7a45;--bg:#f6f7f8;--border:#e5e7eb;--muted:#64748b;--shadow:0 8px 30px rgba(0,0,0,.06)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg)}
+    .layout{max-width:1100px;margin:24px auto;padding:0 18px}
+    .page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .title{font-size:22px;font-weight:800}
+    .sub{font-size:13px;color:var(--muted)}
+    .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer;box-shadow:var(--shadow);text-decoration:none;color:#0f172a}
+    .btn.primary{background:var(--g);color:#fff;border-color:transparent}
+    .card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+    .card .inner{padding:12px}
+    .filters{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    @media (min-width:800px){.filters{grid-template-columns:repeat(6,1fr)}}
+    label{font-size:12px;color:var(--muted)}
+    input,select{height:38px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;width:100%}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+    th{font-size:12px;color:var(--muted);font-weight:700}
+    tr:hover td{background:#fafafa}
+    .nowrap{white-space:nowrap}
+    .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border)}
+    .b-green{background:#ecfdf5;border-color:#bbf7d0}
+    .b-red{background:#fef2f2;border-color:#fecaca}
+    .b-blue{background:#eff6ff;border-color:#bfdbfe}
+    .status{display:inline-flex;align-items:center;gap:8px}
+    .muted{color:#64748b}
+    .pager{display:flex;justify-content:space-between;align-items:center;padding:10px}
+    .page{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;text-decoration:none;color:#0f172a}
+    .page.active{background:var(--g);color:#fff;border-color:transparent}
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="page-head">
+      <div>
+        <div class="title">{{ _('История действий комиссии') }}</div>
+        <div class="sub">{{ _('Журнал изменений статусов и комментариев по заявкам') }}</div>
+      </div>
+      <div>
+        <a class="btn" href="{{ url_for('prov.dashboard') }}">← {{ _('Назад') }}</a>
+       <a class="btn primary"
+    href="{{ url_for('prov.commission_logs_ndjson',
+      q=filters.q, action=filters.action, status_after=filters.status_after,
+      actor=filters.actor, date_from=filters.date_from, date_to=filters.date_to) }}"
+    download="commission_logs.ndjson">⬇️ {{ _('Экспорт NDJSON') }}</a>
+      </div>
+    </div>
+
+    {% set ACTION_LABELS = {
+      'decision': _('Решение'),
+      'update_status': _('Изменение статуса'),
+      'comment': _('Комментарий'),
+      'attach': _('Вложение'),
+      'view': _('Просмотр')
+    } %}
+
+<!--    <div class="card"><div class="inner">-->
+<!--      <form class="filters" method="get" action="">-->
+<!--        <div><label>{{ _('Поиск') }}</label>-->
+<!--          <input name="q" value="{{ filters.q }}" placeholder="ID заявки, ФИО, причина, IP…">-->
+<!--        </div>-->
+<!--        <div><label>{{ _('Действие') }}</label>-->
+<!--          <select name="action">-->
+<!--            <option value="">{{ _('Любое') }}</option>-->
+<!--            {% for a in ['decision','update_status','comment','attach','view'] %}-->
+<!--              <option value="{{ a }}" {{ 'selected' if filters.action==a else '' }}>{{ ACTION_LABELS[a] }}</option>-->
+<!--            {% endfor %}-->
+<!--          </select>-->
+<!--        </div>-->
+<!--        <div><label>{{ _('Статус после') }}</label>-->
+<!--          <select name="status_after">-->
+<!--            <option value="">{{ _('Любой') }}</option>-->
+<!--            <option value="approved" {{ 'selected' if filters.status_after=='approved' else '' }}>{{ _('Одобрено') }}</option>-->
+<!--            <option value="rejected" {{ 'selected' if filters.status_after=='rejected' else '' }}>{{ _('Отклонено') }}</option>-->
+<!--          </select>-->
+<!--        </div>-->
+<!--        <div><label>{{ _('Исполнитель') }}</label>-->
+<!--          <input name="actor" value="{{ filters.actor }}" placeholder="ФИО или e-mail">-->
+<!--        </div>-->
+<!--        <div><label>{{ _('С даты') }}</label>-->
+<!--          <input type="date" name="date_from" value="{{ filters.date_from }}">-->
+<!--        </div>-->
+<!--        <div><label>{{ _('По дату') }}</label>-->
+<!--          <input type="date" name="date_to" value="{{ filters.date_to }}">-->
+<!--        </div>-->
+<!--      </form>-->
+
+<!--      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">-->
+<!--        <div class="badge b-blue">{{ _('Всего') }}: {{ counts.total }}</div>-->
+<!--        <div class="badge b-green">{{ ACTION_LABELS['decision'] }}: {{ counts.decision }}</div>-->
+<!--        <div class="badge b-blue">{{ ACTION_LABELS['update_status'] }}: {{ counts.update_status }}</div>-->
+<!--        <div class="badge b-blue">{{ ACTION_LABELS['comment'] }}: {{ counts.comment }}</div>-->
+<!--        <div class="badge b-blue">{{ ACTION_LABELS['attach'] }}: {{ counts.attach }}</div>-->
+<!--        <div class="badge b-blue">{{ ACTION_LABELS['view'] }}: {{ counts.view }}</div>-->
+<!--      </div>-->
+<!--    </div></div>-->
+
+    <div class="card" style="margin-top:10px"><div class="inner">
+      <div class="muted" style="font-size:12px;margin-bottom:8px">{{ _('Показываются последние события') }}</div>
+      <table>
+        <thead>
+          <tr>
+            <th class="nowrap">{{ _('Дата/время') }}</th>
+            <th>{{ _('Действие') }}</th>
+            <th>{{ _('Статус') }}</th>
+            <th>{{ _('Заявка') }}</th>
+            <th>{{ _('Исполнитель') }}</th>
+            <th>{{ _('Причина') }}</th>
+            <th class="nowrap">IP</th>
+            <th>User-Agent</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for x in logs %}
+          {% set color = 'b-blue' %}
+          {% if x.action == 'decision' %}{% set color = 'b-green' %}{% endif %}
+          {% if x.new_status == 'rejected' %}{% set color = 'b-red' %}{% endif %}
+          {% set old_lbl = _('Одобрено') if x.old_status=='approved' else (_('Отклонено') if x.old_status=='rejected' else x.old_status) %}
+          {% set new_lbl = _('Одобрено') if x.new_status=='approved' else (_('Отклонено') if x.new_status=='rejected' else x.new_status) %}
+          <tr>
+            <td class="nowrap">
+              {{ x.created_at.strftime('%Y-%m-%d %H:%M') if x.created_at.__class__.__name__=='datetime' else x.created_at }}
+            </td>
+            <td><span class="badge {{ color }}">{{ ACTION_LABELS.get(x.action, x.action) }}</span></td>
+            <td>
+              {% if x.new_status %}
+              <div class="status">
+                {% if x.old_status %}<span class="badge b-blue">{{ old_lbl }}</span><span>→</span>{% endif %}
+                <span class="badge {{ 'b-green' if x.new_status=='approved' else ('b-red' if x.new_status=='rejected' else 'b-blue') }}">{{ new_lbl }}</span>
+              </div>
+              {% else %}<span class="muted">—</span>{% endif %}
+            </td>
+            <td>
+  {% if x.app.public_no %}
+    №{{ x.app.public_no }}
+  {% else %}
+    #{{ x.app.id }}
+  {% endif %}
+</td>
+
+            <td>{{ x.actor.name }}<br><span class="muted" style="font-size:12px">{{ x.actor.email }}</span></td>
+            <td>{{ x.comment or '—' }}</td>
+            <td class="nowrap">{{ x.ip or '—' }}</td>
+            <td class="muted">{{ x.ua }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="pager">
+        <div class="muted" style="font-size:12px">{{ _('Страница') }} {{ page }} {{ _('из') }} {{ pages }}</div>
+        <div>
+          {% for p in range(1, pages+1) %}
+            <a class="page {{ 'active' if p==page else '' }}"
+               href="{{ url_for('prov.commission_logs_page',
+                 q=filters.q, action=filters.action, status_after=filters.status_after,
+                 actor=filters.actor, date_from=filters.date_from, date_to=filters.date_to, page=p) }}">{{ p }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </div></div>
+  </div>
+</body>
+</html>

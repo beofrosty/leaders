@@ -72,10 +72,6 @@ def form():
             return redirect(url_for('admin.admin'))
         return redirect(url_for('main.index'))
 
-    # GET — возвращаем на главную (чтобы форма всегда открывалась модалкой на /)
-    if request.method == 'GET':
-        return redirect(url_for('main.index'))
-
     # POST — создание заявки
     with get_conn() as conn, conn.cursor() as c:
         c.execute("SELECT COUNT(*) AS cnt FROM applications WHERE user_id = %s", (u['id'],))
@@ -244,11 +240,18 @@ def api_my_application():
 
     with get_conn() as conn, conn.cursor() as c:
         c.execute("""
-          SELECT id, commission_status, commission_comment, created_at
-            FROM applications
-           WHERE user_id = %s
-           ORDER BY created_at DESC NULLS LAST
-           LIMIT 1
+          SELECT a.id,
+                 a.public_no,                -- ← ДОБАВИЛИ
+                 u.full_name,
+                 u.email,
+                 a.commission_status,
+                 a.commission_comment,
+                 a.created_at,
+                 a.test_link
+            FROM applications a
+            JOIN users u ON u.id = a.user_id
+           WHERE a.user_id = %s
+           ORDER BY a.created_at DESC NULLS LAST
         """, (u['id'],))
         row = c.fetchone()
 

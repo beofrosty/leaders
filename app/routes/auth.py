@@ -3,7 +3,7 @@ import uuid, secrets
 from datetime import datetime, timedelta, timezone
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, session, flash, current_app
+    url_for, session, flash, current_app, abort
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_babel import gettext as _
@@ -46,88 +46,90 @@ def ru_plural(n, one, few, many):
 
 @bp.route('/admin/register', methods=['GET', 'POST'])
 def admin_register():
-    code_env = current_app.config.get('ADMIN_INVITE_CODE', '')
-
-    # ВАЖНО: считаем флаг через ретрай (и для GET, и для POST)
-    try:
-        has_admin = _count_admins_with_retry()
-    except Exception:
-        current_app.logger.exception("Failed to check admins count")
-        # при недоступной БД покажем форму без кода, но с ошибкой
-        flash(('error', _('База данных недоступна. Попробуйте позже.')))
-        return render_template('admin_register.html', form={'require_code': True})
-
-    if request.method == 'POST':
-        code = (request.form.get('invite_code') or '').strip()
-        full_name = (request.form.get('full_name') or '').strip()
-        email = (request.form.get('email') or '').strip().lower()
-        password = request.form.get('password') or ''
-        password2 = request.form.get('password2') or ''
-
-        if has_admin and code != code_env:
-            flash(('error', _('Неверный код приглашения.')))
-            return render_template('admin_register.html', form=request.form)
-
-        if not full_name or not email or not password or password != password2 or len(password) < 8:
-            flash(('error', _('Проверьте поля формы.')))
-            return render_template('admin_register.html', form=request.form)
-
-        if get_user_by_email(email):
-            flash(('error', _('Пользователь с таким e-mail уже есть.')))
-            return render_template('admin_register.html', form=request.form)
-
-        uid = str(uuid.uuid4())
-        try:
-            with get_conn() as conn, conn.cursor() as c:
-                c.execute("""
-                    INSERT INTO users (id, email, full_name, password_hash, is_verified, created_at, role)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    uid, email, full_name,
-                    generate_password_hash(password), True, _utc_now(), 'admin'
-                ))
-                conn.commit()
-        except OperationalError as e:
-            # ещё одна страховка на момент INSERT
-            msg = str(e)
-            if 'SSL' in msg or 'EOF' in msg or 'bad record mac' in msg:
-                try:
-                    if _pool:
-                        _pool.check()
-                except Exception:
-                    pass
-                # повторная попытка одного INSERT
-                try:
-                    with get_conn() as conn, conn.cursor() as c:
-                        c.execute("""
-                            INSERT INTO users (id, email, full_name, password_hash, is_verified, created_at, role)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        """, (
-                            uid, email, full_name,
-                            generate_password_hash(password), True, _utc_now(), 'admin'
-                        ))
-                        conn.commit()
-                except Exception:
-                    current_app.logger.exception("Failed to create admin user after retry")
-                    flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
-                    return render_template('admin_register.html', form=request.form)
-            else:
-                current_app.logger.exception("Failed to create admin user")
-                flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
-                return render_template('admin_register.html', form=request.form)
-        except Exception:
-            current_app.logger.exception("Failed to create admin user")
-            flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
-            return render_template('admin_register.html', form=request.form)
-
-        session.permanent = True
-        session['user_email'] = email
-        session['user_id'] = uid
-        flash(('success', _('Администратор создан!')))
-        return redirect(url_for('admin.admin'))
-
-    # GET
-    return render_template('admin_register.html', form={'require_code': has_admin})
+    abort(403)
+# def admin_register():
+#     code_env = current_app.config.get('ADMIN_INVITE_CODE', '')
+#
+#     # ВАЖНО: считаем флаг через ретрай (и для GET, и для POST)
+#     try:
+#         has_admin = _count_admins_with_retry()
+#     except Exception:
+#         current_app.logger.exception("Failed to check admins count")
+#         # при недоступной БД покажем форму без кода, но с ошибкой
+#         flash(('error', _('База данных недоступна. Попробуйте позже.')))
+#         return render_template('admin_register.html', form={'require_code': True})
+#
+#     if request.method == 'POST':
+#         code = (request.form.get('invite_code') or '').strip()
+#         full_name = (request.form.get('full_name') or '').strip()
+#         email = (request.form.get('email') or '').strip().lower()
+#         password = request.form.get('password') or ''
+#         password2 = request.form.get('password2') or ''
+#
+#         if has_admin and code != code_env:
+#             flash(('error', _('Неверный код приглашения.')))
+#             return render_template('admin_register.html', form=request.form)
+#
+#         if not full_name or not email or not password or password != password2 or len(password) < 8:
+#             flash(('error', _('Проверьте поля формы.')))
+#             return render_template('admin_register.html', form=request.form)
+#
+#         if get_user_by_email(email):
+#             flash(('error', _('Пользователь с таким e-mail уже есть.')))
+#             return render_template('admin_register.html', form=request.form)
+#
+#         uid = str(uuid.uuid4())
+#         try:
+#             with get_conn() as conn, conn.cursor() as c:
+#                 c.execute("""
+#                     INSERT INTO users (id, email, full_name, password_hash, is_verified, created_at, role)
+#                     VALUES (%s, %s, %s, %s, %s, %s, %s)
+#                 """, (
+#                     uid, email, full_name,
+#                     generate_password_hash(password), True, _utc_now(), 'admin'
+#                 ))
+#                 conn.commit()
+#         except OperationalError as e:
+#             # ещё одна страховка на момент INSERT
+#             msg = str(e)
+#             if 'SSL' in msg or 'EOF' in msg or 'bad record mac' in msg:
+#                 try:
+#                     if _pool:
+#                         _pool.check()
+#                 except Exception:
+#                     pass
+#                 # повторная попытка одного INSERT
+#                 try:
+#                     with get_conn() as conn, conn.cursor() as c:
+#                         c.execute("""
+#                             INSERT INTO users (id, email, full_name, password_hash, is_verified, created_at, role)
+#                             VALUES (%s, %s, %s, %s, %s, %s, %s)
+#                         """, (
+#                             uid, email, full_name,
+#                             generate_password_hash(password), True, _utc_now(), 'admin'
+#                         ))
+#                         conn.commit()
+#                 except Exception:
+#                     current_app.logger.exception("Failed to create admin user after retry")
+#                     flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
+#                     return render_template('admin_register.html', form=request.form)
+#             else:
+#                 current_app.logger.exception("Failed to create admin user")
+#                 flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
+#                 return render_template('admin_register.html', form=request.form)
+#         except Exception:
+#             current_app.logger.exception("Failed to create admin user")
+#             flash(('error', _('Ошибка базы данных. Попробуйте позже.')))
+#             return render_template('admin_register.html', form=request.form)
+#
+#         session.permanent = True
+#         session['user_email'] = email
+#         session['user_id'] = uid
+#         flash(('success', _('Администратор создан!')))
+#         return redirect(url_for('admin.admin'))
+#
+#     # GET
+#     return render_template('admin_register.html', form={'require_code': has_admin})
 
 
 
@@ -210,6 +212,24 @@ def login():
             flash(('error', _('Аккаунт не подтверждён.')))
             return render_template('login.html', form=request.form, next=request.args.get('next') or '')
 
+        # блоки доступа
+        if not user.get('is_active', True):
+            flash(('error', _('Учетная запись деактивирована.')))
+            return render_template('login.html', form=request.form, next=request.args.get('next') or '')
+        exp = user.get('access_expires_at')
+        if exp and exp < _utc_now():
+            flash(('error', _('Срок доступа истёк. Обратитесь к администратору.')))
+            return render_template('login.html', form=request.form, next=request.args.get('next') or '')
+
+        # сохранить сессию
+        session.permanent = True
+        session['user_email'] = email
+        session['user_id'] = user['id']
+
+        # принудительная смена при первом входе
+        if user.get('must_change_password'):
+            return redirect(url_for('auth.force_change_credentials'))
+
         # вход
         session.permanent = True
         session['user_email'] = email
@@ -218,6 +238,8 @@ def login():
 
         # если админ — всегда в админку
         role = str((user.get('role') if isinstance(user, dict) else user['role']) or '').lower()
+        if role == 'provisioner':
+            return redirect(url_for('prov.dashboard'))
         if role == 'admin':
             return redirect(url_for('admin.admin'))
 
@@ -339,3 +361,49 @@ def _count_admins_with_retry() -> bool:
             return _count_admins()
         # не похожа на сетевую проблему — пробрасываем дальше
         raise
+@bp.route('/force-change', methods=['GET', 'POST'], endpoint='force_change_credentials')
+def force_change_credentials():
+    from ..db import get_user_by_email, get_conn
+    u = get_user_by_email(session.get('user_email') or '')
+    if not u:
+        session.clear()
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        new_email = (request.form.get('email') or '').strip().lower()
+        pw = (request.form.get('password') or '').strip()
+        pw2 = (request.form.get('password2') or '').strip()
+
+        if not new_email or '@' not in new_email or '.' not in new_email:
+            flash(('error', _('Некорректный e-mail.'))); return render_template('force_change.html', form=request.form)
+        if len(pw) < 12:
+            flash(('error', _('Пароль должен быть не менее 12 символов.'))); return render_template('force_change.html', form=request.form)
+        if pw != pw2:
+            flash(('error', _('Пароли не совпадают.'))); return render_template('force_change.html', form=request.form)
+
+        other = get_user_by_email(new_email)
+        if other and other['id'] != u['id']:
+            flash(('error', _('Пользователь с таким e-mail уже есть.'))); return render_template('force_change.html', form=request.form)
+
+        try:
+            with get_conn() as conn, conn.cursor() as c:
+                c.execute("""
+                  UPDATE users
+                     SET email=%s, password_hash=%s, must_change_password=FALSE
+                   WHERE id=%s
+                """, (new_email, generate_password_hash(pw), u['id']))
+                conn.commit()
+            session['user_email'] = new_email
+            flash(('success', _('Данные учётной записи обновлены.')))
+            role = (u.get('role') or '').lower()
+            if role == 'provisioner':
+                return redirect(url_for('prov.dashboard'))
+            if role == 'admin':
+                return redirect(url_for('admin.admin'))
+            return redirect(url_for('main.index'))
+        except Exception:
+            current_app.logger.exception("force-change failed")
+            flash(('error', _('Не удалось обновить. Попробуйте позже.')))
+            return render_template('force_change.html', form=request.form)
+
+    return render_template('force_change.html', form={'email': u['email']})

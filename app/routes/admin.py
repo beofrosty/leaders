@@ -34,7 +34,7 @@ def admin_dashboard():
     u = current_user()
     with get_conn() as conn, conn.cursor() as c:
         c.execute("""
-          SELECT a.id, u.full_name, u.email, a.commission_status, a.created_at
+          SELECT a.id, a.public_no, u.full_name, u.email, a.commission_status, a.created_at
             FROM applications a
             JOIN users u ON u.id = a.user_id
            ORDER BY a.created_at DESC NULLS LAST
@@ -57,13 +57,11 @@ def admin_update_app_status(app_id):
     status = request.form.get('commission_status')
     comment = request.form.get('commission_comment')
 
-    # статусы остаются на русском
     if status not in ['Одобрено', 'Отклонено']:
         flash(('error', _('Выберите корректный статус.')))
         return redirect(url_for('admin.admin'))
 
     with get_conn() as conn, conn.cursor() as c:
-        # блок повторного решения
         c.execute("SELECT commission_status FROM applications WHERE id = %s", (app_id,))
         row = c.fetchone()
         if not row:
@@ -73,15 +71,29 @@ def admin_update_app_status(app_id):
             flash(('error', _('Решение уже принято: %(s)s', s=row['commission_status'])))
             return redirect(url_for('admin.admin'))
 
-        # обновляем
         c.execute("""
           UPDATE applications
              SET commission_status = %s, commission_comment = %s
            WHERE id = %s
         """, (status, comment, app_id))
-        conn.commit()
 
-        # e-mail пользователя
+        u = current_user() or {}
+        admin_id = u.get('id') or None
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        ua = request.headers.get('User-Agent')
+
+        with get_conn() as conn, conn.cursor() as c2:
+            c2.execute("""
+                INSERT INTO commission_logs (
+                    id, app_id, admin_id, action, old_status, new_status, comment, ip_addr, user_agent, meta
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                str(uuid.uuid4()), app_id, admin_id, 'update_status',
+                row.get('commission_status'), status, (comment or None), ip, ua,
+                json.dumps({"route": request.path}, ensure_ascii=False)
+            ))
+            conn.commit()
+
         c.execute("""
           SELECT u.email
             FROM applications a
@@ -105,7 +117,6 @@ def admin_update_app_status(app_id):
 def admin_tests():
     u = current_user()
     with get_conn() as conn, conn.cursor() as c:
-        # q_count считаем по JSONB; если поле TEXT — приводим через ::jsonb
         c.execute("""
             SELECT
               id,
@@ -162,14 +173,13 @@ def admin_tests_new():
                 title,
                 description,
                 duration,
-                Json(questions),  # пусть хранится jsonb
+                Json(questions),
                 datetime.now(timezone.utc),
                 False
             ))
             conn.commit()
         flash(('success', _('Тест создан.')))
         return redirect(url_for('admin.admin_tests'))
-    # GET
     return render_template('admin_test_form.html', form={}, mode='new')
 
 
@@ -196,7 +206,6 @@ def admin_tests_edit(test_id):
         flash(('success', _('Тест обновлён.')))
         return redirect(url_for('admin.admin_tests'))
 
-    # GET
     with get_conn() as conn, conn.cursor() as c:
         c.execute("SELECT * FROM tests WHERE id = %s", (test_id,))
         t = c.fetchone()
@@ -204,7 +213,6 @@ def admin_tests_edit(test_id):
         flash(('error', _('Тест не найден.')))
         return redirect(url_for('admin.admin_tests'))
 
-    # questions может прийти как list/dict (jsonb) — возвращаем строкой для textarea
     q_raw = t['questions']
     q_str = json.dumps(q_raw, ensure_ascii=False) if not isinstance(q_raw, str) else (q_raw or '[]')
 
@@ -253,7 +261,7 @@ def admin_tests_json(test_id):
     })
 
 
-@bp.post('/admin/app/<app_id>/decision')
+@bp.post('/admin/app/<app_id>/decision', endpoint='admin_decide')
 def admin_decide(app_id):
     # доступ только админам
     email = session.get('user_email') or ''
@@ -263,7 +271,7 @@ def admin_decide(app_id):
         abort(403)
 
     data = request.get_json(silent=True) or request.form
-    status = (data.get('status') or '').lower().strip()
+    status = (data.get('status') or '').lower().strip()     # 'approved' | 'rejected'
     reason = (data.get('reason') or '').strip()
 
     if status not in ('approved', 'rejected'):
@@ -273,24 +281,72 @@ def admin_decide(app_id):
 
     status_label = _('Одобрено') if status == 'approved' else _('Отклонено')
 
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    ua = request.headers.get('User-Agent')
+    admin = get_user_by_email(session.get('user_email') or '')
+    admin_id = (dict(admin).get('id') if admin else None)
+
     with get_conn() as conn, conn.cursor() as c:
-        # проверяем, не принято ли уже решение
-        c.execute("SELECT commission_status FROM applications WHERE id = %s", (app_id,))
+        c.execute("""
+            SELECT commission_status, user_id
+              FROM applications
+             WHERE id = %s
+             FOR UPDATE
+        """, (app_id,))
         row = c.fetchone()
         if not row:
             return jsonify(ok=False, error='not_found'), 404
-        if row['commission_status']:
-            return jsonify(ok=False, error='already_decided', status=row['commission_status']), 409
 
-        # 1) Обновляем статус
+        prev = row['commission_status']  # может быть None
+        if prev:
+            return jsonify(ok=False, error='already_decided', status=prev), 409
+
+        test_link = None
+        if status == 'approved':
+            c.execute("""
+                SELECT id
+                  FROM tests
+                 ORDER BY created_at DESC NULLS LAST
+                 LIMIT 1
+            """)
+            t = c.fetchone()
+            test_link = (
+                url_for('tests.tests_start', test_id=t['id'], _external=True)
+                if t else url_for('tests.tests', _external=True)
+            )
+
         c.execute("""
-          UPDATE applications
-             SET commission_status = %s, commission_comment = %s
-           WHERE id = %s
+            UPDATE applications
+               SET commission_status = %s,
+                   commission_comment = %s
+             WHERE id = %s
         """, (status_label, (reason or None), app_id))
-        conn.commit()
 
-        # 2) Почта и имя пользователя
+        c.execute("""
+            INSERT INTO commission_logs (
+                id, app_id, admin_id, action,
+                old_status, new_status, comment,
+                ip_addr, user_agent, meta
+            )
+            VALUES (%s, %s, %s, %s,
+                    %s, %s, %s,
+                    %s, %s, %s)
+        """, (
+            str(uuid.uuid4()),
+            app_id,
+            admin_id,
+            'decision',
+            prev,
+            status_label,
+            (reason or None),
+            ip,
+            ua,
+            json.dumps(
+                {"route": request.path, "test_link": test_link},
+                ensure_ascii=False
+            ),
+        ))
+
         c.execute("""
           SELECT u.email, u.full_name, u.id AS user_id
             FROM applications a
@@ -299,33 +355,29 @@ def admin_decide(app_id):
         """, (app_id,))
         dest = c.fetchone()
 
-        # 3) найдём "последний" тест (опционально)
-        test_link = None
-        if status == 'approved':
-            c.execute("""
-              SELECT id
-                FROM tests
-               ORDER BY created_at DESC NULLS LAST
-               LIMIT 1
-            """)
-            t = c.fetchone()
-            test_link = (
-                url_for('tests.tests_start', test_id=t['id'], _external=True)
-                if t else url_for('tests.tests', _external=True)
-            )
+        conn.commit()
 
-    # 4) Шлём письмо
     if dest and dest['email']:
         if status == 'approved':
-            send_accept_email(dest['email'],
-                              full_name=dest['full_name'],
-                              test_url=test_link)
+            send_accept_email(
+                dest['email'],
+                full_name=dest['full_name'],
+                test_url=test_link
+            )
         else:
-            send_reject_email(dest['email'],
-                              reason=reason,
-                              full_name=dest['full_name'])
+            send_reject_email(
+                dest['email'],
+                reason=reason,
+                full_name=dest['full_name']
+            )
 
-    return jsonify(ok=True, status=status_label, comment=reason or '')
+    return jsonify(
+        ok=True,
+        status=status_label,
+        status_code=status,
+        status_label=status_label,
+        comment=reason or ''
+    )
 
 
 @bp.route('/admin/api/app/<app_id>')
@@ -355,7 +407,6 @@ def admin_app_json(app_id):
         if not row:
             return jsonify({"ok": False, "error": "not_found"}), 404
 
-        # form_data может прийти как jsonb (dict) — нормализуем в dict
         form = {}
         try:
             if isinstance(row["form_data"], (dict, list)):
@@ -365,7 +416,6 @@ def admin_app_json(app_id):
         except Exception:
             form = {}
 
-        # последняя попытка теста пользователя
         c.execute("""
           SELECT ta.test_id,
                  ta.score,
@@ -387,7 +437,6 @@ def admin_app_json(app_id):
     flat = {}
 
     if att:
-        # total
         try:
             q_list = att['questions']
             if isinstance(q_list, str):
@@ -396,7 +445,6 @@ def admin_app_json(app_id):
         except Exception:
             total = None
 
-        # answers
         answers = att['answers']
         if isinstance(answers, str):
             try:
@@ -412,7 +460,6 @@ def admin_app_json(app_id):
             except Exception:
                 percent = None
 
-        # время в секундах (TIMESTAMPTZ → datetime)
         time_spent = None
         try:
             st = att['started_at']
@@ -459,7 +506,7 @@ def admin_app_json(app_id):
         "full_name": row["full_name"],
         "email": row["email"],
         "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-        "status": row["commission_status"],
+        "status": row["commission_status"],  # здесь уже код ('approved'/'rejected') после триггера
         "comment": row["commission_comment"],
         "form": form,
         "test": test_payload,
@@ -477,3 +524,23 @@ def admin_tests_publish(test_id):
         conn.commit()
     flash(_('Статус теста обновлён'), 'success')
     return redirect(url_for('admin.admin_tests'))
+
+
+@bp.route('/admin/app/<app_id>/logs')
+@admin_required
+def admin_app_logs(app_id):
+    with get_conn() as conn, conn.cursor() as c:
+        c.execute("""
+            SELECT l.created_at, l.action, l.old_status, l.new_status, l.comment,
+                   l.ip_addr, l.user_agent,
+                   u.full_name AS admin_name, u.email AS admin_email
+              FROM commission_logs l
+              LEFT JOIN users u ON u.id = l.admin_id
+             WHERE l.app_id = %s
+             ORDER BY l.created_at DESC
+             LIMIT 200
+        """, (app_id,))
+        logs = c.fetchall()
+    return render_template('commission_review.html',
+                           app_id=app_id, logs=logs,
+                           page_title=_('Логи решений комиссии'))

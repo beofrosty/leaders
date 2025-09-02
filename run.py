@@ -1,11 +1,13 @@
-from app import create_app
+# run.py
 from dotenv import load_dotenv
 load_dotenv()
+
 try:
-    from .app import create_app  # когда модуль импортируют как package: forum.run
+    from .app import create_app
 except ImportError:
-    from app import create_app   # когда запускаешь python run.py из папки forum
+    from app import create_app
+
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

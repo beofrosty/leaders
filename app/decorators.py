@@ -1,6 +1,8 @@
 # app/decorators.py
+from datetime import datetime, timezone
 from functools import wraps
-from flask import session, redirect, url_for, flash
+
+from flask import session, redirect, url_for, flash, abort
 from .db import get_user_by_email
 from flask_babel import gettext as _
 
@@ -27,4 +29,19 @@ def admin_required(view):
             flash(_('Доступ только для администраторов'), 'error')
             return redirect(url_for('main.index'))
         return view(*args, **kwargs)
+    return wrapper
+def provisioner_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        email = session.get('user_email')
+        u = get_user_by_email(email) if email else None
+        if not u:
+            abort(403)
+        role = (u.get('role') or '').lower()
+        if role != 'provisioner' or not u.get('is_active', True):
+            abort(403)
+        exp = u.get('access_expires_at')
+        if exp and exp < datetime.now(timezone.utc):
+            abort(403)
+        return f(*args, **kwargs)
     return wrapper

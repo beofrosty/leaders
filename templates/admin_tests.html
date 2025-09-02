@@ -198,7 +198,7 @@
       <div class="who">
         <span class="name">{{ user['full_name'] if user else _('Админ') }}</span>
         <span class="role">
-          {{ _('Супер админ') if user and user['role']=='admin' else _('Администратор') }}
+          {{ _('Комиссия') if user and user['role']=='admin' else _('Администратор') }}
         </span>
       </div>
       <div class="avatar">{{ (user['full_name'][0] if user and user['full_name'] else 'A')|upper }}</div>
@@ -310,189 +310,264 @@
     </div>
   </div>
 
-  <script>
-  (function(){
-    /* ===== i18n strings for JS ===== */
-    const I18N = {
-      copied: "{{ _('Ссылка скопирована') }}",
-      notLoaded: "{{ _('Не удалось загрузить тест') }}",
-      createTitle: "{{ _('Создать тест') }}",
-      editTitle: "{{ _('Редактировать тест') }}",
-      questionText: "{{ _('Текст вопроса') }}",
-      addOption: "{{ _('Добавить вариант ответа') }} +",
-      optionPlaceholder: "{{ _('Вариант ответа') }}",
-      single: "{{ _('Один ответ') }}",
-      multiple: "{{ _('Чекбокс') }}",
-      addAtLeastOne: "{{ _('Добавьте хотя бы один вопрос.') }}",
-      untitled: "{{ _('Без названия') }}"
-    };
+<script>
+(function(){
+  /* ===== i18n strings for JS ===== */
+  const I18N = {
+    copied: "{{ _('Ссылка скопирована') }}",
+    saved: "{{ _('Черновик сохранён') }}",            // ← NEW
+    notLoaded: "{{ _('Не удалось загрузить тест') }}",
+    createTitle: "{{ _('Создать тест') }}",
+    editTitle: "{{ _('Редактировать тест') }}",
+    questionText: "{{ _('Текст вопроса') }}",
+    addOption: "{{ _('Добавить вариант ответа') }} +",
+    optionPlaceholder: "{{ _('Вариант ответа') }}",
+    single: "{{ _('Один ответ') }}",
+    multiple: "{{ _('Чекбокс') }}",
+    addAtLeastOne: "{{ _('Добавьте хотя бы один вопрос.') }}",
+    untitled: "{{ _('Без названия') }}"
+  };
 
-    /* ===== Dropdown ===== */
-    const toast = document.getElementById('copiedToast');
-    function showToast(){ toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), 1400); }
-    document.addEventListener('click', e => {
-      // закрыть все
-      document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open'));
-      // открыть текущее
-      const btn = e.target.closest('[data-menu-btn]');
-      if (btn) { e.stopPropagation(); btn.closest('[data-card]').querySelector('[data-menu]').classList.add('open'); }
-      // копирование
-      const copyBtn = e.target.closest('[data-copy]');
-      if (copyBtn) {
-        e.preventDefault();
-        const link = copyBtn.getAttribute('data-copy') || '';
-        if (navigator.clipboard && link) navigator.clipboard.writeText(link).then(showToast);
-      }
-    });
-
-    /* ===== Builder (create/edit) ===== */
-    const overlay = document.getElementById('builder');
-    const openBtn = document.getElementById('openBuilder');
-    const closeBtns = overlay.querySelectorAll('[data-close]');
-    const grid = document.getElementById('qGrid');
-    const saveBtn = document.getElementById('saveBtn');
-    const form = document.getElementById('builderForm');
-    const titleInput = document.getElementById('titleInput');
-    const durationInput = document.getElementById('durationInput');
-    const titleHidden = document.getElementById('titleHidden');
-    const descHidden = document.getElementById('descHidden');
-    const durationHidden = document.getElementById('durationHidden');
-    const questionsHidden = document.getElementById('questionsHidden');
-    const builderTitle = document.getElementById('builderTitle');
-
-    let mode = 'create'; // 'create' | 'edit'
-    let editId = null;
-
-    // Модель вопроса
-    function newQuestion(){
-      return { q:"", type:"single", options:[
-        {text:"", correct:false}, {text:"", correct:false}, {text:"", correct:false}
-      ]};
-    }
-    let questions = [];
-
-    function render(){
-      grid.innerHTML="";
-      questions.forEach((qu, qi)=>{
-        const card=document.createElement('div'); card.className='qcard';
-
-        const qInput=document.createElement('input'); qInput.className='input';
-        qInput.placeholder=I18N.questionText; qInput.value=qu.q;
-        qInput.oninput=e=>{qu.q=e.target.value}; card.appendChild(qInput);
-
-        qu.options.forEach((op, oi)=>{
-          const row=document.createElement('div'); row.className='opt-row';
-          const chk=document.createElement('input'); chk.type=(qu.type==='single')?'radio':'checkbox';
-          chk.name='c-'+qi; chk.checked=!!op.correct;
-          chk.onchange=()=>{ if(qu.type==='single'){ qu.options.forEach(o=>o.correct=false); op.correct=true; render(); } else { op.correct=chk.checked; } };
-          row.appendChild(chk);
-
-          const inp=document.createElement('input'); inp.type='text'; inp.className='input';
-          inp.placeholder=`${I18N.optionPlaceholder} ${oi+1}`; inp.value=op.text; inp.oninput=e=>{op.text=e.target.value};
-          row.appendChild(inp);
-
-          card.appendChild(row);
-        });
-
-        const typeRow=document.createElement('div'); typeRow.className='type-row';
-        const addOpt=document.createElement('a'); addOpt.className='link'; addOpt.textContent=I18N.addOption;
-        addOpt.onclick=()=>{qu.options.push({text:'',correct:false}); render();};
-        typeRow.appendChild(addOpt);
-
-        const sel=document.createElement('select'); sel.className='select';
-        sel.innerHTML=`<option value="single"${qu.type==='single'?' selected':''}>${I18N.single}</option>
-                       <option value="multiple"${qu.type==='multiple'?' selected':''}>${I18N.multiple}</option>`;
-        sel.onchange=()=>{const prev=qu.type; qu.type=sel.value;
-          if(qu.type==='single' && prev!=='single'){ const idx=qu.options.findIndex(o=>o.correct);
-            qu.options.forEach(o=>o.correct=false); if(idx>=0) qu.options[idx].correct=true; }
-          render();
-        };
-        typeRow.appendChild(sel);
-        card.appendChild(typeRow);
-
-        grid.appendChild(card);
-      });
-    }
-
-    function openModalCreate(){
-      mode='create'; editId=null;
-      builderTitle.textContent=I18N.createTitle;
-      form.action = "{{ url_for('admin.admin_tests_new') }}";
-      titleInput.value='{{ _("Шаблон № 1") }}';
-      durationInput.value=0;
-      questions=[newQuestion(), newQuestion()];
-      render();
-      overlay.classList.add('open'); document.body.style.overflow='hidden';
-    }
-    function openModalEdit(id, payload){
-      mode='edit'; editId=id;
-      builderTitle.textContent=I18N.editTitle;
-      form.action = "{{ url_for('admin.admin_tests_edit', test_id='__ID__') }}".replace('__ID__', id);
-      titleInput.value=payload.title || '';
-      durationInput.value=payload.duration_minutes || 0;
-      try{
-        const arr = JSON.parse(payload.questions || '[]');
-        questions = arr.map(q => ({
-          q: q.q || '',
-          type: Array.isArray(q.correct) ? 'multiple' : 'single',
-          options: (q.options || []).map((text, idx) => ({
-            text,
-            correct: Array.isArray(q.correct) ? q.correct.includes(idx) : (idx === (q.correct_index ?? -1))
-          }))
-        }));
-        if (!questions.length) questions=[newQuestion()];
-      }catch(e){ questions=[newQuestion()]; }
-      render();
-      overlay.classList.add('open'); document.body.style.overflow='hidden';
-    }
-    function closeModal(){ overlay.classList.remove('open'); document.body.style.overflow=''; }
-
-    // События
-    openBtn.onclick = openModalCreate;
-    closeBtns.forEach(b=> b.onclick = closeModal);
-    overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
-    document.getElementById('addQuestion').onclick = ()=>{ questions.push(newQuestion()); render(); };
-
-    // Открыть редактирование из меню
-    document.addEventListener('click', async (e)=>{
-      const btn = e.target.closest('[data-edit-id]');
-      if (!btn) return;
-      const id = btn.getAttribute('data-edit-id');
-      const url = "{{ url_for('admin.admin_tests_json', test_id='__ID__') }}".replace('__ID__', id);
-      const r = await fetch(url);
-      if(!r.ok){ alert(I18N.notLoaded); return; }
-      const t = await r.json();
-      openModalEdit(id, t);
-    });
-
-    // Сохранение
-    saveBtn.onclick = (e)=>{
+  /* ===== Dropdown ===== */
+  const toast = document.getElementById('copiedToast');
+  // Было: function showToast(){...}
+  function showToast(msg){                                // ← CHANGED (универсальный тост)
+    if (msg) toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(()=>{
+      toast.classList.remove('show');
+      toast.textContent = I18N.copied;                    // вернуть исходный текст
+    }, 1400);
+  }
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open'));
+    const btn = e.target.closest('[data-menu-btn]');
+    if (btn) { e.stopPropagation(); btn.closest('[data-card]').querySelector('[data-menu]').classList.add('open'); }
+    const copyBtn = e.target.closest('[data-copy]');
+    if (copyBtn) {
       e.preventDefault();
+      const link = copyBtn.getAttribute('data-copy') || '';
+      if (navigator.clipboard && link) navigator.clipboard.writeText(link).then(()=>showToast());
+    }
+  });
 
-      const cleaned = questions.map(q=>({
-        q:(q.q||'').trim(),
-        type:q.type,
-        options:q.options.map(o=>({text:(o.text||'').trim(), correct:!!o.correct})).filter(o=>o.text)
-      })).filter(q=> q.q && q.options.length>=2);
+  /* ===== Builder (create/edit) ===== */
+  const overlay = document.getElementById('builder');
+  const openBtn = document.getElementById('openBuilder');
+  const closeBtns = overlay.querySelectorAll('[data-close]');
+  const grid = document.getElementById('qGrid');
+  const saveBtn = document.getElementById('saveBtn');
+  const form = document.getElementById('builderForm');
+  const titleInput = document.getElementById('titleInput');
+  const durationInput = document.getElementById('durationInput');
+  const titleHidden = document.getElementById('titleHidden');
+  const descHidden = document.getElementById('descHidden');
+  const durationHidden = document.getElementById('durationHidden');
+  const questionsHidden = document.getElementById('questionsHidden');
+  const builderTitle = document.getElementById('builderTitle');
 
-      if (!cleaned.length){ alert(I18N.addAtLeastOne); return; }
+  let mode = 'create'; // 'create' | 'edit'
+  let editId = null;
 
-      const payload = cleaned.map(q=>{
-        const correctIdxs = q.options.map((o,i)=>o.correct?i:-1).filter(i=>i>=0);
-        return (q.type==='single')
-          ? { q:q.q, options:q.options.map(o=>o.text), correct_index:(correctIdxs[0]??0) }
-          : { q:q.q, options:q.options.map(o=>o.text), correct:correctIdxs };
+  // === Автосохранение черновика в localStorage ===
+  const DRAFT_NS = 'builderDraft';
+  const draftKey = () => `${DRAFT_NS}:${mode}:${editId || 'new'}`;
+  let autosaveTimer = null;
+  const scheduleAutosave = () => {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(()=> saveDraft('typing'), 400);
+  };
+  const getState = () => ({
+    title: titleInput.value.trim(),
+    duration: parseInt(durationInput.value || 0, 10) || 0,
+    questions,                      // сохраняем модель как есть
+    ts: Date.now()
+  });
+  const loadState = (st) => {
+    titleInput.value = st.title || '';
+    durationInput.value = st.duration || 0;
+    questions = Array.isArray(st.questions) && st.questions.length ? st.questions : [newQuestion()];
+    render();
+  };
+  const saveDraft = (why='auto') => {
+    try {
+      localStorage.setItem(draftKey(), JSON.stringify(getState()));
+      if (why !== 'typing') showToast(I18N.saved);
+    } catch(e){}
+  };
+  const clearDraft = () => { try { localStorage.removeItem(draftKey()); } catch(e){} };
+  const tryRestoreDraft = () => {
+    try {
+      const raw = localStorage.getItem(draftKey());
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      loadState(data);
+      return true;
+    } catch(e){ return false; }
+  };
+  window.addEventListener('beforeunload', ()=> {
+    // если модалка открыта и пользователь уходит — сохраним
+    if (overlay.classList.contains('open')) saveDraft('beforeunload');
+  });
+
+  // Модель вопроса
+  function newQuestion(){
+    return { q:"", type:"single", options:[
+      {text:"", correct:false}, {text:"", correct:false}, {text:"", correct:false}
+    ]};
+  }
+  let questions = [];
+
+  function render(){
+    grid.innerHTML="";
+    questions.forEach((qu, qi)=>{
+      const card=document.createElement('div'); card.className='qcard';
+
+      const qInput=document.createElement('input'); qInput.className='input';
+      qInput.placeholder=I18N.questionText; qInput.value=qu.q;
+      qInput.oninput=e=>{qu.q=e.target.value; scheduleAutosave();};          // ← autosave
+      card.appendChild(qInput);
+
+      qu.options.forEach((op, oi)=>{
+        const row=document.createElement('div'); row.className='opt-row';
+        const chk=document.createElement('input'); chk.type=(qu.type==='single')?'radio':'checkbox';
+        chk.name='c-'+qi; chk.checked=!!op.correct;
+        chk.onchange=()=>{
+          if(qu.type==='single'){ qu.options.forEach(o=>o.correct=false); op.correct=true; render(); }
+          else { op.correct=chk.checked; }
+          scheduleAutosave();                                                // ← autosave
+        };
+        row.appendChild(chk);
+
+        const inp=document.createElement('input'); inp.type='text'; inp.className='input';
+        inp.placeholder=`${I18N.optionPlaceholder} ${oi+1}`; inp.value=op.text;
+        inp.oninput=e=>{op.text=e.target.value; scheduleAutosave();};        // ← autosave
+        row.appendChild(inp);
+
+        card.appendChild(row);
       });
 
-      titleHidden.value = titleInput.value.trim() || I18N.untitled;
-      durationHidden.value = parseInt(durationInput.value || 0, 10);
-      descHidden.value = '';
-      questionsHidden.value = JSON.stringify(payload);
+      const typeRow=document.createElement('div'); typeRow.className='type-row';
+      const addOpt=document.createElement('a'); addOpt.className='link'; addOpt.textContent=I18N.addOption;
+      addOpt.onclick=()=>{qu.options.push({text:'',correct:false}); render(); scheduleAutosave();}; // ← autosave
+      typeRow.appendChild(addOpt);
 
-      form.submit();
-    };
-  })();
-  </script>
+      const sel=document.createElement('select'); sel.className='select';
+      sel.innerHTML=`<option value="single"${qu.type==='single'?' selected':''}>${I18N.single}</option>
+                     <option value="multiple"${qu.type==='multiple'?' selected':''}>${I18N.multiple}</option>`;
+      sel.onchange=()=>{const prev=qu.type; qu.type=sel.value;
+        if(qu.type==='single' && prev!=='single'){ const idx=qu.options.findIndex(o=>o.correct);
+          qu.options.forEach(o=>o.correct=false); if(idx>=0) qu.options[idx].correct=true; }
+        render(); scheduleAutosave();                                        // ← autosave
+      };
+      typeRow.appendChild(sel);
+      card.appendChild(typeRow);
+
+      grid.appendChild(card);
+    });
+  }
+
+  // События верхних полей → автосохранение
+  titleInput.addEventListener('input', scheduleAutosave);
+  durationInput.addEventListener('input', scheduleAutosave);
+
+  function openModalCreate(){
+    mode='create'; editId=null;
+    builderTitle.textContent=I18N.createTitle;
+    form.action = "{{ url_for('admin.admin_tests_new') }}";
+    titleInput.value='{{ _("Шаблон № 1") }}';
+    durationInput.value=0;
+    questions=[newQuestion(), newQuestion()];
+    render();
+    // попытаться восстановить черновик "создания"
+    tryRestoreDraft();
+    overlay.classList.add('open'); document.body.style.overflow='hidden';
+  }
+  function openModalEdit(id, payload){
+    mode='edit'; editId=id;
+    builderTitle.textContent=I18N.editTitle;
+    form.action = "{{ url_for('admin.admin_tests_edit', test_id='__ID__') }}".replace('__ID__', id);
+    titleInput.value=payload.title || '';
+    durationInput.value=payload.duration_minutes || 0;
+    try{
+      const arr = JSON.parse(payload.questions || '[]');
+      questions = arr.map(q => ({
+        q: q.q || '',
+        type: Array.isArray(q.correct) ? 'multiple' : 'single',
+        options: (q.options || []).map((text, idx) => ({
+          text,
+          correct: Array.isArray(q.correct) ? q.correct.includes(idx) : (idx === (q.correct_index ?? -1))
+        }))
+      }));
+      if (!questions.length) questions=[newQuestion()];
+    }catch(e){ questions=[newQuestion()]; }
+    render();
+    // если есть черновик редактирования — предпочитаем его
+    tryRestoreDraft();
+    overlay.classList.add('open'); document.body.style.overflow='hidden';
+  }
+
+  // Было: закрытие по клику по фону
+  // overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
+  // Теперь клик по фону НИЧЕГО не делает (модалка не закроется).
+  overlay.addEventListener('click', e=>{
+    if(e.target===overlay){ e.stopPropagation(); }
+  });
+
+  function closeModal(){
+    saveDraft('close');                                // ← автосохранение при выходе
+    overlay.classList.remove('open'); document.body.style.overflow='';
+  }
+
+  // События
+  openBtn.onclick = openModalCreate;
+  closeBtns.forEach(b=> b.onclick = closeModal);
+  // уход кликом мимо модалки уже не закрывает — см. выше
+
+  document.getElementById('addQuestion').onclick = ()=>{ questions.push(newQuestion()); render(); scheduleAutosave(); };
+
+  // Открыть редактирование из меню
+  document.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('[data-edit-id]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-edit-id');
+    const url = "{{ url_for('admin.admin_tests_json', test_id='__ID__') }}".replace('__ID__', id);
+    const r = await fetch(url);
+    if(!r.ok){ alert(I18N.notLoaded); return; }
+    const t = await r.json();
+    openModalEdit(id, t);
+  });
+
+  // Сохранение (отправка формы в бекенд) → чистим черновик
+  saveBtn.onclick = (e)=>{
+    e.preventDefault();
+
+    const cleaned = questions.map(q=>({
+      q:(q.q||'').trim(),
+      type:q.type,
+      options:q.options.map(o=>({text:(o.text||'').trim(), correct:!!o.correct})).filter(o=>o.text)
+    })).filter(q=> q.q && q.options.length>=2);
+
+    if (!cleaned.length){ alert(I18N.addAtLeastOne); return; }
+
+    const payload = cleaned.map(q=>{
+      const correctIdxs = q.options.map((o,i)=>o.correct?i:-1).filter(i=>i>=0);
+      return (q.type==='single')
+        ? { q:q.q, options:q.options.map(o=>o.text), correct_index:(correctIdxs[0]??0) }
+        : { q:q.q, options:q.options.map(o=>o.text), correct:correctIdxs };
+    });
+
+    titleHidden.value = titleInput.value.trim() || I18N.untitled;
+    durationHidden.value = parseInt(durationInput.value || 0, 10);
+    descHidden.value = '';
+    questionsHidden.value = JSON.stringify(payload);
+
+    clearDraft();                                     // ← чтобы не мешал старый черновик
+    form.submit();
+  };
+})();
+</script>
+
   <script>
   (function(){
     const sw = document.getElementById('langSwitch');

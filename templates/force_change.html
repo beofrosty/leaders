@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Смена логина и пароля') }}{% endblock %}
+{% block navbar %}{% endblock %}
+{% block extra_head %}
+<style>
+  /* компактная карточка по центру (опираемся на стили auth в base.html) */
+  .fc-wrap{
+    width: 100%;
+    display: grid;
+    place-items: center;
+    padding: 24px 12px;
+  }
+  .fc-card{
+    width: min(520px, 92vw);
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:16px;
+    box-shadow: var(--shadow);
+    padding: 22px 22px 18px;
+  }
+  .fc-title{ margin: 0 0 10px; font-size: 22px; font-weight: 800; color:#0c2790; text-align:left; }
+  .fc-note{ margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+  .fc-group{ margin: 12px 0; }
+  .fc-label{ display:block; font-size: 13px; color:#334155; margin:0 0 6px; font-weight:600; }
+  .fc-input{ width:100%; height:42px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:#fff; }
+  .fc-input:focus{ border-color:#b3e2c7; box-shadow:0 0 0 4px #e8f7ef; outline:none; }
+  .fc-help{ font-size:12px; color:#6b7280; margin-top:6px; }
+  .fc-actions{ display:flex; gap:8px; margin-top:16px; }
+  .btn-primary{ background:linear-gradient(90deg,#2e7d32,#1b5e20); color:#fff; border:none; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
+  .btn-ghost{ background:#eef2f7; color:#111827; border:none; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; }
+  .btn-primary:disabled{ opacity:.6; cursor:not-allowed; }
+  /* алерты — используем твои базовые классы */
+  .alert{ margin-top:10px; padding:10px 12px; border-radius:10px; font-size:13px; }
+  .alert-error{ background:#fee2e2; color:#991b1b; }
+  .alert-success{ background:#e8f7ef; color:#166534; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fc-wrap">
+  <div class="fc-card" role="form" aria-labelledby="fcTitle">
+    <h1 class="fc-title" id="fcTitle">{{ _('Обновление учётной записи') }}</h1>
+    <p class="fc-note">
+      {{ _('Это ваш первый вход. Пожалуйста, укажите новый e-mail (логин) и новый пароль.') }}
+    </p>
+
+    {# флеш-сообщения #}
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% if msgs %}
+        {% for cat, msg in msgs %}
+          <div class="alert {{ 'alert-error' if cat=='error' else 'alert-success' }}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('auth.force_change_credentials') }}" novalidate>
+      <div class="fc-group">
+        <label class="fc-label">{{ _('Новый e-mail (логин)') }}</label>
+        <input class="fc-input" type="email" name="email" required
+               value="{{ (form.email if form else '') }}"
+               autocomplete="username">
+        <div class="fc-help">{{ _('Это будет вашим логином для входа.') }}</div>
+      </div>
+
+      <div class="fc-group">
+        <label class="fc-label">{{ _('Новый пароль') }}</label>
+        <input class="fc-input" type="password" name="password" required minlength="12" autocomplete="new-password">
+        <div class="fc-help">{{ _('Не менее 12 символов.') }}</div>
+      </div>
+
+      <div class="fc-group">
+        <label class="fc-label">{{ _('Повторите пароль') }}</label>
+        <input class="fc-input" type="password" name="password2" required minlength="12" autocomplete="new-password">
+      </div>
+
+      <div class="fc-actions">
+        <button class="btn-primary" type="submit">{{ _('Сохранить') }}</button>
+
+        <button class="btn-ghost" type="button"
+                onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
+          {{ _('Выйти') }}
+        </button>
+      </div>
+    </form>
+
+    <form id="logoutForm" method="post" action="{{ url_for('auth.logout') }}"></form>
+  </div>
+</div>
+{% endblock %}
